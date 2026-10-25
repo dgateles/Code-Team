@@ -21,6 +21,7 @@ Code Team is an independent community project. It is not affiliated with or endo
 | `/connect-openrouter` | Adds OpenRouter with your API key. |
 | `/disconnect-<name>` | Removes that connection's models from `/model`, for example `/disconnect-deepseek`. |
 | `/disconnect <name>` | The same for any connection, including a [custom provider](#custom-provider). |
+| `/code-team:quota` | Shows which models are out of quota, until when, and the sessions they stopped. See [When a quota runs out](#when-a-quota-runs-out). |
 
 Each command is idempotent: running it again repairs or refreshes the connection. It always ends by telling you what happened and what to do next. Usually that is to **fully restart Claude Code**, because the picker only reloads its model list at startup.
 
@@ -98,6 +99,17 @@ The rules for a custom provider:
 - **Local proxy:** `--autostart-command <exe> --autostart-arg <arg>...` launches it when it does not answer.
 
 Other commands: `provider list`, `provider remove <id>`, and `provider test <id> [--live]`. `test` reads the model list, then calls `count_tokens`. It only spends tokens with `--live`, which sends a 1-token request.
+
+## When a quota runs out
+
+When a provider rejects a request because its quota or balance is used up, Code Team answers Claude Code the way Anthropic answers a subscription limit:
+
+- **Claude Code stops at once.** It shows "You've hit your usage limit · resets 6pm" and keeps the conversation. It does not retry for minutes, which would also burn what is left of a per-minute budget. If the provider does not say when the quota resets, the message names the model and says so.
+- **The model stays blocked until the reset.** Requests to that model are answered locally without calling the provider. Other models, Claude included, are unaffected.
+- **The stopped session is recorded:** its id, the model, and what it was working on. When the quota is back, the next session start in that project says so and gives the command to continue: `claude --resume <id>`, then "continue". To keep working right away, pick another model with `/model` and say "continue".
+- **`/code-team:quota` lists them.** It shows each model that is out of quota with its reset time, and each stopped session with its resume command.
+
+A short 429 that is ordinary throttling (a few seconds' wait and no quota wording) is passed through, and Claude Code retries it as usual.
 
 ## Advanced: providers.json
 
