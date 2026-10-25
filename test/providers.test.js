@@ -283,3 +283,16 @@ test('connect tests a registered custom provider, then wires the project only wh
   assert.match(lines.join('\n'), /refused: FAILED: the provider refused the key \(HTTP 401\)/);
   assert.doesNotMatch(lines.join('\n'), /wrong-key/);
 });
+
+test('the model list is fetched without anthropic-version, which makes CLIProxyAPI disguise ids', async (t) => {
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    const id = req.headers['anthropic-version'] ? 'claude-fable-5-dd-hsalf-3-inimeg' : 'gemini-3-flash';
+    res.end(JSON.stringify({ data: [{ id, owned_by: 'antigravity' }] }));
+  });
+  const port = await new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
+  t.after(() => server.close());
+  const provider = registry.validateProvider({ id: 'agy', baseUrl: `http://127.0.0.1:${port}`, modelsFrom: 'list', ownedBy: 'antigravity' });
+  const listed = await registry.fetchProviderModels(provider, { env: {} });
+  assert.deepEqual(listed.models.map((model) => model.id), ['gemini-3-flash']);
+});

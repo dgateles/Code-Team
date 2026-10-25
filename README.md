@@ -161,6 +161,7 @@ Code Team has its own state directory (`~/.claude/code-team/`), ports (18774 for
 - **`provider test` says the key cannot be checked without spending tokens.** The provider has neither a model list nor `count_tokens`. Run `provider test <id> --live` to send one 1-token request.
 - **Antigravity lists no models.** The CLIProxyAPI is up but not signed in. Run `/connect-antigravity` again to repeat the sign-in. For a proxy you run yourself, sign in there.
 - **GPT models fail but Claude works.** Ask Claude: "Code Team GPT models fail, diagnose it." The bundled skill runs `doctor`, which checks the proxy, the ChatGPT login, ports, the model list and settings precedence.
+- **"owns :18774 from a different install root".** Two copies of Code Team are competing for the gateway port. This happens when a local checkout is added as a marketplace (`/plugin marketplace add ./`): the commands then run from the checkout while the hooks run from the plugin cache. Install from GitHub instead, or test a checkout with `node bin/code-team.js` and no plugin install.
 - **Something else.** Ask Claude to run `doctor`. Its log files are under `~/.claude/code-team/logs/`.
 
 The gateway's recovery behaviour, context-window settings, request-route log, Claude model pins and Remote Control compatibility work as in Model Gateway. The bundled `code-team` skill describes them, and Claude uses it when you ask about them.
