@@ -19,6 +19,11 @@ const { canReplaceInstalledCliPath } = require('../lib/runtime.js');
 const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const BODY_SESSION_ID = 'gateway-fixture-body-sentinel';
 
+// Windows reports an executable path that contains a space quoted in the process command line.
+function commandLineExe(file) {
+  return process.platform === 'win32' && file.includes(' ') ? `"${file}"` : file;
+}
+
 function listen(server) {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 }
@@ -1466,7 +1471,7 @@ test('sibling ensure retires dead records without deleting replacement worker an
     `code-team: pid record guardian retired because PID ${retiredGuardianPid} is gone`,
     `code-team: pid record shim retired because PID ${retiredWorkerPid} is gone`,
     `code-team: pid record proxy retired because PID ${retiredProxyPid} is gone`,
-    `code-team: pid record shim rewritten for replaced PID ${replacementWorkerPid}: ${process.execPath} ${newerCli} serve-worker`,
+    `code-team: pid record shim rewritten for replaced PID ${replacementWorkerPid}: ${commandLineExe(process.execPath)} ${newerCli} serve-worker`,
   ];
   const pidRecordLines = updaterOutput.split(/\r?\n/).filter((line) => line.startsWith('code-team: pid record'));
   const stalePidFileLines = updaterOutput.split(/\r?\n/).filter((line) => line.startsWith('code-team: stale pid file'));

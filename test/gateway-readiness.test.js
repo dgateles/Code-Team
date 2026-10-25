@@ -216,8 +216,10 @@ test('upstream-blocked survives a health check and clears on a successful Codex 
   assert.equal(result.afterSuccess.state, 'ready');
 
   const gatewaySkill = fs.readFileSync(path.join(__dirname, '..', 'skills', 'code-team', 'SKILL.md'), 'utf8');
-  const guide = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'docs', 'src', 'content', 'docs', 'getting-started', 'code-team.md'), 'utf8');
-  for (const prose of [gatewaySkill, guide]) {
+  // The upstream site guide only exists in the Eigenwise monorepo; standalone checkouts check the skill alone.
+  const guidePath = path.join(__dirname, '..', '..', '..', 'docs', 'src', 'content', 'docs', 'getting-started', 'code-team.md');
+  const guide = fs.existsSync(guidePath) ? fs.readFileSync(guidePath, 'utf8') : null;
+  for (const prose of [gatewaySkill, guide].filter(Boolean)) {
     assert.match(prose, /An attributed OpenAI 401, 403, or 429 rejection enters\s+`upstream-blocked`/);
     assert.match(prose, /A 401 or 403 stays until `setup` or a completed successful Codex\s+response\s+clears it/);
     assert.match(prose, /A 429 block expires: `upstreamBlocked\.expiresAt` comes from the 429's Retry-After,\s+else claude-code-proxy's usage-limit reset header, else 60 seconds/);

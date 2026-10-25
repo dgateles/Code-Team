@@ -20,6 +20,7 @@ Code Team is an independent community project. It is not affiliated with or endo
 | `/connect-minimax` | Adds MiniMax with your API key. Add `--region cn` for the China platform. |
 | `/connect-openrouter` | Adds OpenRouter with your API key. |
 | `/disconnect-<name>` | Removes that connection's models from `/model`, for example `/disconnect-deepseek`. |
+| `/disconnect <name>` | The same for any connection, including a [custom provider](#custom-provider). |
 
 Each command is idempotent: running it again repairs or refreshes the connection. It always ends by telling you what happened and what to do next. Usually that is to **fully restart Claude Code**, because the picker only reloads its model list at startup.
 
@@ -83,7 +84,10 @@ node ~/.claude/code-team/code-team.js provider add --custom --id acme --name "Ac
   --base-url https://llm.acme.example/anthropic --api-key-env ACME_API_KEY \
   --model acme-large:400000 --model acme-small
 node ~/.claude/code-team/code-team.js provider test acme
+node ~/.claude/code-team/code-team.js connect acme
 ```
+
+`connect <id>` tests the provider and wires the current project, as the preset commands do. `/disconnect acme` removes it.
 
 The rules for a custom provider:
 

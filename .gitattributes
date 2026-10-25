@@ -1,0 +1,2 @@
+# Snapshot fixtures are pinned by SHA-256; keep their bytes exactly as committed.
+test/fixtures/prior-adapters/** -text

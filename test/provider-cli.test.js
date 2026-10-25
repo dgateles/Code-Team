@@ -108,7 +108,6 @@ test('provider add --custom, list, test and remove against a local endpoint', as
   assert.equal(unknown.status, 1);
   assert.match(unknown.stderr, /no provider local/);
 });
-
 test('provider test reports a refused key and spends no tokens without --live', async (t) => {
   const { run } = await cliHome(t);
   const fake = await fakeProvider(t, (req, res) => {

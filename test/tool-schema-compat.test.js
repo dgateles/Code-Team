@@ -5,7 +5,6 @@ const { createHash } = require('node:crypto');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { resolveSuite } = require('../../sidequest/lib/suite-resolver.js');
 const Ajv2020 = require('ajv/dist/2020.js');
 const {
   ACCEPTED_REGEX_ESCAPE_TOKEN_KINDS,
@@ -90,19 +89,6 @@ test('uses Ajv 8.20.0 as the conforming Draft 2020-12 oracle', () => {
   const packageVersion = require('../node_modules/ajv/package.json').version;
   assert.equal(packageVersion, '8.20.0');
   assert.equal(typeof Ajv2020, 'function');
-});
-
-test('uses the shared suite resolver package-script convention for cold gateway setup', () => {
-  const suite = resolveSuite(path.resolve(__dirname, '../../..'), {
-    name: 'model-gateway',
-    dir: 'plugins/model-gateway',
-  });
-  assert.deepEqual(suite, {
-    plugin: 'model-gateway',
-    cwd: 'plugins/model-gateway',
-    setup: 'npm ci',
-    command: 'npm test',
-  });
 });
 
 test('rewrites only the approved Artifact property atoms and retains the provider-accepted grammar', () => {

@@ -7,7 +7,8 @@ const path = require('node:path');
 const test = require('node:test');
 const registry = require('../lib/providers.js');
 const presets = require('../lib/provider-presets.js');
-const { acceptGoogleTerms, parseArgs } = require('../lib/provider-commands.js');
+const http = require('node:http');
+const { EXIT, acceptGoogleTerms, connectCommand, parseArgs } = require('../lib/provider-commands.js');
 
 const BASE = { id: 'acme', baseUrl: 'https://api.acme.test/anthropic', apiKeyEnv: 'ACME_API_KEY', models: ['acme-large'] };
 
@@ -252,4 +253,33 @@ test('builtin connections record connect and disconnect state', () => {
   assert.equal(registry.builtinDisabled('grok', connections), false);
   assert.equal(registry.builtinDisabled('gpt', { gpt: { disabled: true } }), true);
   assert.equal(registry.builtinConnected('grok', { grok: { connectedAt: 'x', disabled: true } }), false);
+});
+
+test('connect tests a registered custom provider, then wires the project only when the key works', async (t) => {
+  const server = http.createServer((req, res) => {
+    const ok = req.headers['x-api-key'] === 'right-key';
+    res.writeHead(ok ? 200 : 401, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(ok ? { data: [{ id: 'm1' }] } : { type: 'error', error: { type: 'authentication_error', message: 'bad key' } }));
+  });
+  const port = await new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
+  t.after(() => server.close());
+  const file = tempFile('providers.json');
+  const baseUrl = `http://127.0.0.1:${port}`;
+  registry.writeProviderList([
+    { id: 'good', name: 'Good', baseUrl, apiKey: 'right-key', models: ['m1'] },
+    { id: 'refused', name: 'Refused', baseUrl, apiKey: 'wrong-key', models: ['m1'] },
+  ], { file });
+  const lines = [];
+  const wired = [];
+  const context = { file, env: {}, out: (line) => lines.push(line), refreshGateway: async (options) => { wired.push(options); return { ok: true }; } };
+
+  assert.equal(await connectCommand(['good'], context), EXIT.ok);
+  assert.deepEqual(wired, [{ wire: true, providerId: 'good' }]);
+  assert.match(lines.join('\n'), /Connected Good: 1 model \(claude-good-m1\)/);
+
+  lines.length = 0;
+  assert.equal(await connectCommand(['refused'], context), EXIT.action);
+  assert.equal(wired.length, 1);
+  assert.match(lines.join('\n'), /refused: FAILED: the provider refused the key \(HTTP 401\)/);
+  assert.doesNotMatch(lines.join('\n'), /wrong-key/);
 });
