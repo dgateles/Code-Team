@@ -11,7 +11,7 @@ const { spawnGatewayProcessSync } = require('./support.js');
 const COMMANDS = path.join(__dirname, '..', 'lib', 'commands.js');
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-stable-command-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-stable-command-'));
   const home = path.join(root, 'home');
   const project = path.join(root, 'project');
   fs.mkdirSync(home, { recursive: true });
@@ -65,15 +65,15 @@ test('doctor advises a command that runs when the SessionStart launcher was neve
 
   const result = runDoctor(home, project, { checks: { shimRunning: true, servingVersionMatches: false, servingVersion: '0.50.16', codexAuth: true, proxyBinary: false, proxyModels: true } });
 
-  assert.doesNotMatch(result.output, new RegExp(path.join(home, '.claude', 'model-gateway', 'model-gateway.js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), result.output);
-  const cliPath = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+  assert.doesNotMatch(result.output, new RegExp(path.join(home, '.claude', 'code-team', 'code-team.js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), result.output);
+  const cliPath = path.join(__dirname, '..', 'bin', 'code-team.js');
   assert.match(result.output, new RegExp(`VERSION MISMATCH.*Run node "${cliPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" ensure`));
   assert.ok(fs.existsSync(cliPath), 'the advised fallback command must exist and run');
 });
 
 test('doctor keeps advising the stable launcher once SessionStart has written it', (t) => {
   const { home, project } = fixture(t);
-  const launcherPath = path.join(home, '.claude', 'model-gateway', 'model-gateway.js');
+  const launcherPath = path.join(home, '.claude', 'code-team', 'code-team.js');
   fs.mkdirSync(path.dirname(launcherPath), { recursive: true });
   fs.writeFileSync(launcherPath, '// stable launcher fixture\n');
 

@@ -164,7 +164,7 @@ function unknownControlReply(port, body) {
   return new Promise((resolve, reject) => {
     const request = http.request({
       host: '127.0.0.1', port, method: 'POST', path: '/internal/rc-compatibility',
-      headers: { 'content-type': 'application/json', 'x-model-gateway-control': 'rc-compatibility' },
+      headers: { 'content-type': 'application/json', 'x-code-team-control': 'rc-compatibility' },
     }, (response) => {
       let received = '';
       response.on('data', (chunk) => { received += chunk; });
@@ -218,7 +218,7 @@ for (const requestPath of ['/v1/messages', '/internal/rc-compatibility']) {
     assert.deepEqual(await sibling.completed, { status: 200, complete: true, body: FIRST_EVENT + LAST_EVENT });
     assert.equal(proxy.messages(), 1, 'only the sibling request reaches the synthetic provider');
 
-    const state = path.join(environment.HOME, '.claude', 'model-gateway');
+    const state = path.join(environment.HOME, '.claude', 'code-team');
     assert.equal(fs.existsSync(path.join(state, 'shim-supervisor-failure.txt')), false);
     const lifecycle = fs.readFileSync(path.join(state, 'logs', 'lifecycle.jsonl'), 'utf8');
     assert.doesNotMatch(lifecycle, /supervisor-uncaught-failure|worker-request-lost|worker-exit/);

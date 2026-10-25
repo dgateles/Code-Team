@@ -76,7 +76,7 @@ function finishEmitterRequest(emitter, requestPayload, contextTokens, sessionId,
 }
 
 test('records a per-session request-body high water mark', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-body-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-body-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const sessionId = 'high-water-session';
   const filePath = requestBodyHighWaterPath(sessionId, directory);
@@ -319,7 +319,7 @@ test('accepts loopback OTLP endpoints only', () => {
 });
 
 test('resolves a gateway session transcript into an OTLP project name attribute', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-project-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-project-'));
   const projectsDirectory = path.join(directory, 'projects');
   const sessionId = 'session-project';
   const projectDirectory = path.join(directory, 'eigenwise-toolshed');
@@ -348,7 +348,7 @@ test('resolves a gateway session transcript into an OTLP project name attribute'
 });
 
 test('uses the real repository root label for a linked transcript cwd', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-linked-project-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-linked-project-'));
   const repository = path.join(directory, 'repo-root');
   const alias = path.join(directory, 'alias');
   fs.mkdirSync(path.join(repository, '.git'), { recursive: true });
@@ -366,7 +366,7 @@ test('uses the real repository root label for a linked transcript cwd', (t) => {
 });
 
 test('uses the on-disk Windows repository casing for a transcript cwd', { skip: process.platform !== 'win32' }, (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-case-project-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-case-project-'));
   const repository = path.join(directory, 'RepoRoot');
   fs.mkdirSync(path.join(repository, '.git'), { recursive: true });
   fs.mkdirSync(path.join(repository, 'packages', 'api'), { recursive: true });

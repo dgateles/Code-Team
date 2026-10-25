@@ -11,7 +11,7 @@ const { gatewayTestEnvironment, startGateway, spawnGatewayProcess } = require('.
 const { createProxyRecovery, fetchUrl, proxyModelsAnswering } = require('../lib/process-supervision.js');
 const { CONTROL_HEADER, controlRequestHeaders } = require('../lib/control-auth.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const gateway = require(CLI);
 
 function listen(server) {
@@ -38,7 +38,7 @@ function request(port, method, pathname, body, extraHeaders = {}) {
 }
 
 function lifecycleHeaders(home) {
-  return controlRequestHeaders(path.join(home, '.claude', 'model-gateway', 'control-token'));
+  return controlRequestHeaders(path.join(home, '.claude', 'code-team', 'control-token'));
 }
 
 async function waitFor(port, expected) {
@@ -62,7 +62,7 @@ function createCachedCli(cacheRoot, version) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   manifest.version = version;
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-  return path.join(pluginDirectory, 'bin', 'model-gateway.js');
+  return path.join(pluginDirectory, 'bin', 'code-team.js');
 }
 
 async function waitForChangedWorkerPid(pidFile, previousPid) {
@@ -90,7 +90,7 @@ async function waitForWorkerVersion(port, version) {
 }
 
 function lifecycleRecords(home) {
-  const recordPath = path.join(home, '.claude', 'model-gateway', 'logs', 'lifecycle.jsonl');
+  const recordPath = path.join(home, '.claude', 'code-team', 'logs', 'lifecycle.jsonl');
   try {
     return fs.readFileSync(recordPath, 'utf8').split(/\r?\n/).flatMap((line) => line ? [JSON.parse(line)] : []);
   } catch { return []; }
@@ -114,7 +114,7 @@ function waitForChildExit(child) {
 }
 
 test('restart with drain submits the newest installed CLI path', async (t) => {
-  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-worker-cache-'));
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-worker-cache-'));
   t.after(() => fs.rmSync(cacheRoot, { recursive: true, force: true }));
   const olderCliPath = createCachedCli(cacheRoot, '0.48.12');
   const newerCliPath = createCachedCli(cacheRoot, '0.48.13');
@@ -218,7 +218,7 @@ test('restart and drain refuse unknown and foreign listener owners before mutati
     assert.equal(unknown.ok, false, `${functionName} refuses a bound listener without a PID`);
     assert.match(unknown.reason, /could not confirm the owner/);
 
-    const foreign = await runLifecycleCaller(functionName, { state: 'foreign-install', pid: 701, installRoot: '/foreign/model-gateway' });
+    const foreign = await runLifecycleCaller(functionName, { state: 'foreign-install', pid: 701, installRoot: '/foreign/code-team' });
     assert.equal(foreign.ok, false, `${functionName} refuses a confirmed foreign listener`);
     assert.match(foreign.reason, /refusing to stop PID 701/);
   }
@@ -363,7 +363,7 @@ test('supervisor keeps its listener available while a hard-killed worker restart
     model: 'claude-gpt-5.6-terra', messages: [], max_tokens: 1,
   });
   while (requests === 0) await new Promise((resolve) => setTimeout(resolve, 10));
-  const pidFile = path.join(home, '.claude', 'model-gateway', 'shim.pid');
+  const pidFile = path.join(home, '.claude', 'code-team', 'shim.pid');
   const oldPid = Number(fs.readFileSync(pidFile, 'utf8'));
   process.kill(oldPid, 'SIGKILL');
   const workerExit = await waitForLifecycleRecord(home, (record) => record.event === 'worker-exit' && record.child?.pid === oldPid);
@@ -458,7 +458,7 @@ test('supervisor drains a planned worker restart without refusing connections', 
 });
 
 test('restart rejects an older installed worker script without restarting', async (t) => {
-  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-worker-cache-'));
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-worker-cache-'));
   const environment = gatewayTestEnvironment(t);
   const home = environment.HOME;
   t.after(() => fs.rmSync(cacheRoot, { recursive: true, force: true }));
@@ -470,7 +470,7 @@ test('restart rejects an older installed worker script without restarting', asyn
     false,
     'fixture teardown removes the home after the supervisor and worker exit',
   ));
-  const pidFile = path.join(home, '.claude', 'model-gateway', 'shim.pid');
+  const pidFile = path.join(home, '.claude', 'code-team', 'shim.pid');
   const previousPid = Number(fs.readFileSync(pidFile, 'utf8'));
 
   assert.equal((await request(shimPort, 'POST', '/restart', { script: olderCliPath }, lifecycleHeaders(home))).status, 400);
@@ -506,7 +506,7 @@ server.listen(0, '127.0.0.1', () => process.send({ type: 'listening', port: serv
 }
 
 test('supervisor refuses the client retry only when a worker took the body', async (t) => {
-  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-worker-cache-'));
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-worker-cache-'));
   const environment = gatewayTestEnvironment(t);
   const home = environment.HOME;
   t.after(() => fs.rmSync(cacheRoot, { recursive: true, force: true }));
@@ -539,7 +539,7 @@ test('supervisor refuses the client retry only when a worker took the body', asy
 });
 
 test('restart adopts a newer installed worker script', async (t) => {
-  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-worker-cache-'));
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-worker-cache-'));
   const environment = gatewayTestEnvironment(t);
   const home = environment.HOME;
   t.after(() => fs.rmSync(cacheRoot, { recursive: true, force: true }));
@@ -551,7 +551,7 @@ test('restart adopts a newer installed worker script', async (t) => {
     false,
     'fixture teardown removes the home after the supervisor and worker exit',
   ));
-  const pidFile = path.join(home, '.claude', 'model-gateway', 'shim.pid');
+  const pidFile = path.join(home, '.claude', 'code-team', 'shim.pid');
   const previousPid = Number(fs.readFileSync(pidFile, 'utf8'));
 
   assert.equal((await request(shimPort, 'POST', '/restart', { script: newerCliPath }, lifecycleHeaders(home))).status, 202);
@@ -560,7 +560,7 @@ test('restart adopts a newer installed worker script', async (t) => {
 });
 
 test('restart refuses to switch a development checkout to a different installation', async (t) => {
-  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-worker-cache-'));
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-worker-cache-'));
   const environment = gatewayTestEnvironment(t);
   const home = environment.HOME;
   t.after(() => fs.rmSync(cacheRoot, { recursive: true, force: true }));
@@ -571,7 +571,7 @@ test('restart refuses to switch a development checkout to a different installati
     false,
     'fixture teardown removes the home after the supervisor and worker exit',
   ));
-  const pidFile = path.join(home, '.claude', 'model-gateway', 'shim.pid');
+  const pidFile = path.join(home, '.claude', 'code-team', 'shim.pid');
   const previousPid = Number(fs.readFileSync(pidFile, 'utf8'));
 
   assert.equal((await request(shimPort, 'POST', '/restart', { script: installedCliPath }, lifecycleHeaders(home))).status, 400);
@@ -591,7 +591,7 @@ test('supervisor rejects unauthenticated and browser-origin controls and foreign
     assert.equal((await request(shimPort, 'POST', endpoint, {}, { ...headers, host: `fixture.invalid:${shimPort}` })).status, 403);
     assert.equal((await request(shimPort, 'POST', endpoint, {}, { [CONTROL_HEADER]: '0'.repeat(64) })).status, 403);
   }
-  const foreign = path.join(home, 'foreign', '99.0.0', 'bin', 'model-gateway.js');
+  const foreign = path.join(home, 'foreign', '99.0.0', 'bin', 'code-team.js');
   fs.mkdirSync(path.dirname(foreign), { recursive: true });
   fs.writeFileSync(foreign, "throw new Error('foreign worker must never execute');\n");
   assert.equal((await request(shimPort, 'POST', '/restart', { script: foreign }, headers)).status, 400);
@@ -704,17 +704,17 @@ test('missing version, unparseable version, and missing proxy recovery restart t
 });
 
 test('newer installed sibling CLI is selected and missing cache layout keeps the invoker', (t) => {
-  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-install-cache-'));
+  const cacheRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-install-cache-'));
   t.after(() => fs.rmSync(cacheRoot, { recursive: true, force: true }));
-  const ownCliPath = path.join(cacheRoot, '0.48.8', 'bin', 'model-gateway.js');
-  const newestCliPath = path.join(cacheRoot, '0.48.12', 'bin', 'model-gateway.js');
-  for (const cliPath of [ownCliPath, path.join(cacheRoot, '0.48.10', 'bin', 'model-gateway.js'), newestCliPath]) {
+  const ownCliPath = path.join(cacheRoot, '0.48.8', 'bin', 'code-team.js');
+  const newestCliPath = path.join(cacheRoot, '0.48.12', 'bin', 'code-team.js');
+  for (const cliPath of [ownCliPath, path.join(cacheRoot, '0.48.10', 'bin', 'code-team.js'), newestCliPath]) {
     fs.mkdirSync(path.dirname(cliPath), { recursive: true });
     fs.writeFileSync(cliPath, '');
   }
 
   assert.equal(gateway.resolveNewestInstalledCliPath({ cliPath: ownCliPath }), newestCliPath);
-  const unavailableCliPath = path.join(cacheRoot, 'absent-cache', '0.48.8', 'bin', 'model-gateway.js');
+  const unavailableCliPath = path.join(cacheRoot, 'absent-cache', '0.48.8', 'bin', 'code-team.js');
   assert.equal(gateway.resolveNewestInstalledCliPath({ cliPath: unavailableCliPath }), unavailableCliPath);
 });
 
@@ -765,13 +765,13 @@ test('doctor reports a serving version mismatch and the ensure remedy', async (t
 
   assert.equal(output.code, 1);
   assert.match(output.text, /serving shim version: 0\.0\.0/);
-  assert.match(output.text, /lifecycle evidence: .*model-gateway[\\/]logs[\\/]lifecycle\.jsonl/);
+  assert.match(output.text, /lifecycle evidence: .*code-team[\\/]logs[\\/]lifecycle\.jsonl/);
   assert.match(output.text, /lifecycle exit evidence: no observed exit record/);
   assert.match(output.text, new RegExp(`VERSION MISMATCH: CLI ${gateway.PLUGIN_VERSION.replaceAll('.', '\\.')}, serving shim 0\\.0\\.0`));
   // SessionStart's writeCommandLauncher never ran in this fixture, so the stable launcher at
-  // <home>/.claude/model-gateway/model-gateway.js does not exist; the message must fall back to the
+  // <home>/.claude/code-team/code-team.js does not exist; the message must fall back to the
   // CLI's own real path instead of naming a launcher that would fail with MODULE_NOT_FOUND (issue #77).
-  assert.doesNotMatch(output.text, new RegExp(path.join(home, '.claude', 'model-gateway', 'model-gateway.js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(output.text, new RegExp(path.join(home, '.claude', 'code-team', 'code-team.js').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(output.text, new RegExp(`Run node "${CLI.replace(/[\\/]/g, '[\\\\/]')}" ensure`));
   assert.ok(fs.existsSync(CLI), 'the advised fallback command must exist and run');
 });
@@ -779,7 +779,7 @@ test('doctor reports a serving version mismatch and the ensure remedy', async (t
 test('doctor describes an observed lifecycle exit', async (t) => {
   const environment = gatewayTestEnvironment(t);
   const home = environment.HOME;
-  const recordPath = path.join(home, '.claude', 'model-gateway', 'logs', 'lifecycle.jsonl');
+  const recordPath = path.join(home, '.claude', 'code-team', 'logs', 'lifecycle.jsonl');
   fs.mkdirSync(path.dirname(recordPath), { recursive: true });
   fs.writeFileSync(recordPath, JSON.stringify({
     at: new Date().toISOString(),
@@ -852,7 +852,7 @@ test('supervisor restores a proxy that dies after startup without another sessio
   modelsAvailable = false;
   assert.equal((await recovery.recover()).state, 'recovered');
   assert.equal(starts, 1);
-  assert.match(logs.join('\n'), /^1970-01-01T00:00:00\.000Z model-gateway: proxy \/v1\/models unavailable; restart attempt 1/m);
+  assert.match(logs.join('\n'), /^1970-01-01T00:00:00\.000Z code-team: proxy \/v1\/models unavailable; restart attempt 1/m);
   assert.match(logs.join('\n'), /proxy recovered and \/v1\/models is ready/);
 });
 

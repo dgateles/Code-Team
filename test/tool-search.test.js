@@ -8,7 +8,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { spawnGatewayProcess } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const ARTIFACT_PATTERN = String.raw`^(?!__.*__$)[^\p{Cc}\p{Cf}\p{Zl}\p{Zp}"\\./[\]]{1,200}$`;
 const ARTIFACT_OUTPUT = String.raw`^(?!__.*__$)[^"\\./[\]]{1,200}$`;
 

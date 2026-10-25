@@ -1,0 +1,18 @@
+Code Team
+Copyright (c) 2026 Douglas Teles and the Code Team contributors
+
+This product is based on Model Gateway by Eigenwise
+(https://github.com/Eigenwise/eigenwise-toolshed/tree/main/plugins/model-gateway),
+version 0.55.3, Copyright (c) 2026 Eigenwise, used under the MIT License.
+The full license text, covering both the original work and this fork, is in LICENSE.
+
+Code Team is an independent community project. It is not affiliated with,
+endorsed by, or sponsored by Anthropic, Eigenwise, OpenAI, xAI, Google,
+DeepSeek, Moonshot AI, Zhipu AI / Z.ai, MiniMax, or OpenRouter. Product names
+are used only to identify the services Code Team can connect to.
+
+Code Team downloads and runs third-party software at the user's request:
+  - claude-code-proxy (https://github.com/raine/claude-code-proxy), for ChatGPT/Codex
+  - CLIProxyAPI (https://github.com/router-for-me/CLIProxyAPI), for Antigravity
+These are not bundled; each is fetched from its own GitHub releases, verified
+against the release's published SHA-256 checksums, and governed by its own license.

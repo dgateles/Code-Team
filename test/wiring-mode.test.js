@@ -8,12 +8,12 @@ const path = require('node:path');
 const test = require('node:test');
 const { spawnGatewayProcessSync } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const DEFAULT_BASE_URL = 'http://127.0.0.1:9';
 const COMPAT_BASE_URL = 'http://api.anthropic.com';
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-wiring-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-wiring-'));
   const home = path.join(root, 'home');
   const project = path.join(root, 'project');
   fs.mkdirSync(home, { recursive: true });
@@ -73,7 +73,7 @@ function wireProject(project, baseUrl = DEFAULT_BASE_URL) {
 
 function gatewaySettings(extraEnv = {}) {
   return {
-    enabledPlugins: { 'model-gateway@eigenwise-toolshed': true },
+    enabledPlugins: { 'code-team@eigenwise-toolshed': true },
     env: {
       ANTHROPIC_BASE_URL: DEFAULT_BASE_URL,
       CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY: '1',
@@ -86,11 +86,11 @@ function gatewaySettings(extraEnv = {}) {
 }
 
 function wiringConfig(home) {
-  return path.join(home, '.claude', 'model-gateway', 'wiring.json');
+  return path.join(home, '.claude', 'code-team', 'wiring.json');
 }
 
 function projectRegistry(home) {
-  return path.join(home, '.claude', 'model-gateway', 'wired-projects.json');
+  return path.join(home, '.claude', 'code-team', 'wired-projects.json');
 }
 
 test('env --write-project wires the current project-local settings', (t) => {
@@ -222,7 +222,7 @@ test('pin refresh updates registered un-overridden pins', (t) => {
     }));
   }
   writeJson(projectRegistry(home), { projects: [project, otherProject] });
-  writeJson(path.join(home, '.claude', 'model-gateway', 'detected-pins.json'), {
+  writeJson(path.join(home, '.claude', 'code-team', 'detected-pins.json'), {
     cliVersion: 'fake-claude 1.0.0',
     updatedAt: Date.now(),
     pins: { opus: 'claude-opus-5[1m]' },
@@ -268,12 +268,12 @@ test('SQ-3205: a CLI alias detected older than the shipped default never pulls p
     writeJson(path.join(projectDirectory, '.claude', 'settings.local.json'), gatewaySettings({ ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetPin }));
   }
   writeJson(projectRegistry(home), { projects: [projectAtShipped, projectAtRetired] });
-  writeJson(path.join(home, '.claude', 'model-gateway', 'pins.json'), { opus: 'claude-opus-5-5[1m]' });
+  writeJson(path.join(home, '.claude', 'code-team', 'pins.json'), { opus: 'claude-opus-5-5[1m]' });
 
   const result = run(home, project, ['env', '--write-project'], { CODEX_GATEWAY_CLAUDE_BIN: fakeClaude(home) });
 
   assert.equal(result.code, 0, result.output);
-  const detected = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'detected-pins.json'), 'utf8'));
+  const detected = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'code-team', 'detected-pins.json'), 'utf8'));
   assert.equal(detected.pins.sonnet, 'claude-sonnet-5[1m]', 'the fake CLI resolves sonnet to the retired Sonnet 5');
   for (const projectDirectory of [projectAtShipped, projectAtRetired]) {
     const env = JSON.parse(fs.readFileSync(path.join(projectDirectory, '.claude', 'settings.local.json'), 'utf8')).env;
@@ -319,7 +319,7 @@ test('user-fallback reconciliation removes only plugin-owned project env entries
   const result = run(home, project, ['env', '--write-user', '--reconcile']);
 
   assert.equal(result.code, 0);
-  assert.match(result.output, /removed model-gateway-owned wiring from 1 project/);
+  assert.match(result.output, /removed code-team-owned wiring from 1 project/);
   assert.deepEqual(JSON.parse(fs.readFileSync(localFile, 'utf8')), { env: { UNRELATED: 'keep-me' } });
   assert.deepEqual(JSON.parse(fs.readFileSync(projectRegistry(home), 'utf8')).projects, []);
 });
@@ -427,7 +427,7 @@ test('doctor reports project-local wiring as the effective source', (t) => {
   const result = runDoctor(home, project);
 
   assert.equal(result.code, 0, result.output);
-  assert.match(result.output, /wiring: effective project settings\.local\.json .*\[model-gateway\]/);
+  assert.match(result.output, /wiring: effective project settings\.local\.json .*\[code-team\]/);
   assert.match(result.output, /default wiring target: this project's \.claude\/settings\.local\.json/);
   assert.match(result.output, /project settings\.local\.json: wired .*\[effective\] \[default write target\]/);
   assert.match(result.output, /user settings\.json: not wired/);
@@ -441,7 +441,7 @@ test('doctor and SessionStart give conditional forced-host guidance before auth 
   const doctor = runDoctor(home, project, environment);
 
   assert.notEqual(doctor.code, 0);
-  assert.match(doctor.output, /process env ANTHROPIC_BASE_URL .*bypasses model-gateway/);
+  assert.match(doctor.output, /process env ANTHROPIC_BASE_URL .*bypasses code-team/);
   assert.match(doctor.output, new RegExp(wiredFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(doctor.output, /user-controlled Claude Code CLI launch can correct or unset ANTHROPIC_BASE_URL/);
   assert.match(doctor.output, /If a host replaces it, use the supported Claude Code CLI on this wired project/);
@@ -451,7 +451,7 @@ test('doctor and SessionStart give conditional forced-host guidance before auth 
   assert.doesNotMatch(doctor.output, /Desktop.*(?:repair|restore|correct)/i);
   assert.doesNotMatch(doctor.output, /env --write-project/);
 
-  const expectedNotice = `Model Gateway is bypassed: process env ANTHROPIC_BASE_URL (https://api.anthropic.com) shadows wired ${wiredFile}. A user-controlled Claude Code CLI launch can correct or unset ANTHROPIC_BASE_URL, then restart. If a host replaces it, use the supported Claude Code CLI on this wired project; Desktop routing is unsupported under forced overrides on Windows and macOS. Settings, parent, and User-scope edits cannot be promised to win.`;
+  const expectedNotice = `Code Team is bypassed: process env ANTHROPIC_BASE_URL (https://api.anthropic.com) shadows wired ${wiredFile}. A user-controlled Claude Code CLI launch can correct or unset ANTHROPIC_BASE_URL, then restart. If a host replaces it, use the supported Claude Code CLI on this wired project; Desktop routing is unsupported under forced overrides on Windows and macOS. Settings, parent, and User-scope edits cannot be promised to win.`;
   for (const codexAuth of [true, false]) {
     const notice = runNode(home, project, `
       const { effectiveBaseUrl } = require(${JSON.stringify(SETTINGS_WIRING)});
@@ -480,8 +480,8 @@ test('doctor and SessionStart accept matching process gateway URLs', (t) => {
     const doctor = runDoctor(home, project, { ANTHROPIC_BASE_URL: baseUrl });
 
     assert.equal(doctor.code, 0, doctor.output);
-    assert.match(doctor.output, /wiring: effective process env \[model-gateway\]/);
-    assert.doesNotMatch(doctor.output, /bypasses model-gateway/);
+    assert.match(doctor.output, /wiring: effective process env \[code-team\]/);
+    assert.doesNotMatch(doctor.output, /bypasses code-team/);
     assert.doesNotMatch(doctor.output, /wiring is not configured/);
     assert.doesNotMatch(doctor.output, /ERROR:/);
 
@@ -514,8 +514,8 @@ test('SessionStart local wiring notice does not say the project is unwired', (t)
   `);
 
   assert.equal(result.code, 0, result.output);
-  assert.match(result.output, /wired to model-gateway through project settings\.local\.json/);
-  assert.doesNotMatch(result.output, /not wired to model-gateway/);
+  assert.match(result.output, /wired to code-team through project settings\.local\.json/);
+  assert.doesNotMatch(result.output, /not wired to code-team/);
 });
 
 test('SessionStart skips unwired notices for project-local wiring without a user setting', (t) => {
@@ -671,7 +671,7 @@ test('doctor retains a process-env gateway mode conflict', (t) => {
   assert.match(result.output, /effective process env ANTHROPIC_BASE_URL uses default mode/);
   assert.match(result.output, new RegExp(`shadowed ${local.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} uses compat mode`));
   assert.match(result.output, /Process env wins/);
-  assert.doesNotMatch(result.output, /bypasses model-gateway/);
+  assert.doesNotMatch(result.output, /bypasses code-team/);
 });
 
 test('syncCompatMode makes verified settings authoritative after migrating legacy wiring', (t) => {
@@ -850,7 +850,7 @@ test('SessionStart leaves a recorded project\'s unwired committed settings byte-
   wireProject(project);
   writeJson(projectRegistry(home), { projects: [project] });
   const original = JSON.stringify({
-    enabledPlugins: { 'model-gateway@eigenwise-toolshed': true },
+    enabledPlugins: { 'code-team@eigenwise-toolshed': true },
     env: { ENABLE_TOOL_SEARCH: 'true' },
   }, null, 2) + '\n';
   fs.mkdirSync(path.dirname(legacyFile), { recursive: true });
@@ -866,7 +866,7 @@ test('SessionStart migrates a gateway-owned committed settings file', (t) => {
   const { home, project } = fixture(t);
   const legacyFile = path.join(project, '.claude', 'settings.json');
   writeJson(legacyFile, {
-    enabledPlugins: { 'model-gateway@eigenwise-toolshed': true },
+    enabledPlugins: { 'code-team@eigenwise-toolshed': true },
     env: {
       ANTHROPIC_BASE_URL: DEFAULT_BASE_URL,
       CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY: '1',
@@ -879,7 +879,7 @@ test('SessionStart migrates a gateway-owned committed settings file', (t) => {
 
   assert.equal(runHook(home, project).code, 0);
   assert.deepEqual(JSON.parse(fs.readFileSync(legacyFile, 'utf8')), {
-    enabledPlugins: { 'model-gateway@eigenwise-toolshed': true },
+    enabledPlugins: { 'code-team@eigenwise-toolshed': true },
   });
 });
 

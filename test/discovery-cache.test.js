@@ -11,12 +11,12 @@ const { gatewayTestEnvironment, spawnGatewayProcess, spawnGatewayProcessSync, st
 
 const RUNTIME = path.join(__dirname, '..', 'lib', 'runtime.js');
 const WIRING = path.join(__dirname, '..', 'lib', 'settings-wiring.js');
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const runtime = require(RUNTIME);
 const wiring = require(WIRING);
 
 function cachePath() {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-discovery-cache-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-discovery-cache-'));
   return path.join(directory, 'cache', 'gateway-models.json');
 }
 
@@ -69,7 +69,7 @@ function runGatewayCommand(testContext, command, environment, isolatedOverrides,
 }
 
 function installProxyStub(home) {
-  const proxyBinary = path.join(home, '.claude', 'model-gateway', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
+  const proxyBinary = path.join(home, '.claude', 'code-team', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
   fs.mkdirSync(path.dirname(proxyBinary), { recursive: true });
   try {
     fs.linkSync(process.execPath, proxyBinary);
@@ -164,7 +164,7 @@ test('does not touch the discovery cache in RC-compatibility mode', () => {
 });
 
 test('uses CLAUDE_CONFIG_DIR for the discovery cache', (testContext) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-discovery-config-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-discovery-config-home-'));
   const configDirectory = path.join(home, 'custom-claude-config');
   testContext.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const result = spawnGatewayProcessSync(process.execPath, ['-e', [
@@ -458,7 +458,7 @@ test('cleanLegacyGatewayModelCache leaves malformed cache alone', () => {
 test('cleanLegacyGatewayModelCache normalizes a stale [1m] suffix down when the configured window is <=200k', () => {
   const file = cachePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-cache-cleaner-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-cache-cleaner-home-'));
   try {
     const script = [
       `const runtime = require(${JSON.stringify(RUNTIME)});`,

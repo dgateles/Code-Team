@@ -121,7 +121,7 @@ test('emits a linked metadata-only route span and strips trace and auth before C
   const proxyPort = await listen(proxy);
   t.after(() => proxy.close());
   const collector = await telemetryCollector(t);
-  const routeLogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-telemetry-'));
+  const routeLogDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-telemetry-'));
   const routeLog = path.join(routeLogDir, 'routes.jsonl');
   t.after(() => fs.rmSync(routeLogDir, { recursive: true, force: true }));
   const shimPort = await spawnShim(t, proxyPort, {

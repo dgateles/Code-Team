@@ -9,7 +9,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { spawnGatewayProcess } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const gw = require(CLI);
 
 const STORED_IDS = ['claude-gpt-5.6-terra', 'claude-gpt-5.6-sol'];
@@ -33,7 +33,7 @@ function storedCatalog({ updatedAt }) {
 // silently cannot hide the next one.
 async function runCatalogCommand(t, { respond, commandArguments, updatedAt }) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-refresh-'));
-  const catalogPath = path.join(home, '.claude', 'model-gateway', 'catalog.json');
+  const catalogPath = path.join(home, '.claude', 'code-team', 'catalog.json');
   fs.mkdirSync(path.dirname(catalogPath), { recursive: true });
   fs.writeFileSync(catalogPath, JSON.stringify(storedCatalog({ updatedAt })));
   const before = fs.readFileSync(catalogPath, 'utf8');

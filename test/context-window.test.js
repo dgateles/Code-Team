@@ -9,7 +9,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { startCountingProxy, startGateway, spawnGatewayProcess, spawnGatewayProcessSync } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const COMMANDS = path.join(__dirname, '..', 'lib', 'commands.js');
 const WORKER = path.join(__dirname, '..', 'lib', 'request-worker.js');
 const PINS = path.join(__dirname, '..', 'lib', 'pins.js');
@@ -21,7 +21,7 @@ delete process.env.CODEX_GATEWAY_CONTEXT_WINDOW;
 delete process.env.CODEX_GATEWAY_COMPACT_TRIGGER;
 // In-process requires read the saved context-window setting from the home directory; a machine's own
 // setting must not change what these assertions see.
-const inProcessHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-context-window-'));
+const inProcessHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-context-window-'));
 process.env.HOME = inProcessHome;
 process.env.USERPROFILE = inProcessHome;
 test.after(() => fs.rmSync(inProcessHome, { recursive: true, force: true }));
@@ -72,7 +72,7 @@ async function waitForStartupPolicyLines(output, expectedCount) {
   const deadline = Date.now() + 5000;
   let lines = [];
   while (Date.now() < deadline) {
-    lines = output.text.split(/\r?\n/).filter((line) => line.startsWith('model-gateway: sentry policy '));
+    lines = output.text.split(/\r?\n/).filter((line) => line.startsWith('code-team: sentry policy '));
     if (lines.length >= expectedCount) return lines;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -359,7 +359,7 @@ test('Codex fallback includes GPT-6 Astra when the proxy has no model route', as
 });
 
 test('default request route logging records Fable metadata but never prompt data', async (t) => {
-  const logFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-routes-')), 'routes.jsonl');
+  const logFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-routes-')), 'routes.jsonl');
   const anthropic = http.createServer((req, res) => {
     const chunks = [];
     req.on('data', (chunk) => chunks.push(chunk));
@@ -404,7 +404,7 @@ test('default request route logging records Fable metadata but never prompt data
 });
 
 test('CODEX_GATEWAY_REQUEST_LOG=0 disables request route logging', async (t) => {
-  const logFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-routes-disabled-')), 'routes.jsonl');
+  const logFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-routes-disabled-')), 'routes.jsonl');
   const anthropic = http.createServer((req, res) => {
     req.resume();
     req.on('end', () => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); });
@@ -481,12 +481,12 @@ test('Codex sentry returns one client-distinguishable context-overflow 413', asy
   assert.equal(overflow.status, 413);
   const error = JSON.parse(overflow.body).error;
   assert.equal(error.type, 'request_too_large');
-  assert.match(error.message, /^Prompt is too long for the Codex context window; compact and retry\. \(101 tokens > 100 tokens\) \[model-gateway: phase first_turn, refused by gateway_sentry;/);
+  assert.match(error.message, /^Prompt is too long for the Codex context window; compact and retry\. \(101 tokens > 100 tokens\) \[code-team: phase first_turn, refused by gateway_sentry;/);
   assert.equal(forwarded, 1);
 });
 
 test('Grok sentry returns a client-distinguishable context-overflow 413', async (t) => {
-  const authDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-grok-sentry-'));
+  const authDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-grok-sentry-'));
   fs.writeFileSync(path.join(authDirectory, 'auth.json'), JSON.stringify({
     'https://auth.x.ai::fixture-client': { key: 'fixture-token', refresh_token: 'fixture-refresh', expires_at: Date.now() + 3600000, oidc_client_id: 'fixture-client' },
   }));
@@ -513,7 +513,7 @@ test('Grok sentry returns a client-distinguishable context-overflow 413', async 
   assert.equal(overflow.status, 413);
   const error = JSON.parse(overflow.body).error;
   assert.equal(error.type, 'request_too_large');
-  assert.ok(error.message.startsWith('Prompt is too long for the Grok context window; compact and retry. (101 tokens > 100 tokens) [model-gateway:'), error.message);
+  assert.ok(error.message.startsWith('Prompt is too long for the Grok context window; compact and retry. (101 tokens > 100 tokens) [code-team:'), error.message);
   assert.deepEqual(error.overflow, {
     phase: 'first_turn', refused_by: 'gateway_sentry', request_bytes: Buffer.byteLength(grokBody),
     tokens: 101, tokens_from: 'previous_turn_usage', limit_tokens: 100,
@@ -857,7 +857,7 @@ test('an upstream 413 with parseable token counts keeps them and only appends di
   const parsed = JSON.parse(response.body);
   assert.equal(parsed.type, 'error');
   assert.equal(parsed.error.type, 'request_too_large');
-  assert.ok(parsed.error.message.startsWith('input is too large (935012 tokens > 920000 tokens) [model-gateway:'), parsed.error.message);
+  assert.ok(parsed.error.message.startsWith('input is too large (935012 tokens > 920000 tokens) [code-team:'), parsed.error.message);
   assert.equal(parsed.error.message.match(/tokens\s*>\s*\d+ tokens/g).length, 1);
   assert.equal(parsed.error.overflow.tokens, 935012);
   assert.equal(parsed.error.overflow.limit_tokens, 920000);
@@ -940,42 +940,42 @@ test('Codex responses strip hallucinated plan-mode tools from JSON and SSE', asy
 });
 
 test('SessionStart cleanup migrates an already-wired install', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-home-'));
   const claudeDir = path.join(home, '.claude');
   fs.mkdirSync(path.join(claudeDir, 'cache'), { recursive: true });
   const settingsPath = path.join(claudeDir, 'settings.json');
   fs.writeFileSync(settingsPath, JSON.stringify({
     env: {
-      ANTHROPIC_BASE_URL: 'http://127.0.0.1:18764',
+      ANTHROPIC_BASE_URL: 'http://127.0.0.1:18774',
       CLAUDE_CODE_AUTO_COMPACT_WINDOW: '950000',
       USER_SETTING: 'keep-me',
     },
   }));
   const gatewayCache = path.join(claudeDir, 'cache', 'gateway-models.json');
   fs.writeFileSync(gatewayCache, JSON.stringify({
-    baseUrl: 'http://127.0.0.1:18764',
+    baseUrl: 'http://127.0.0.1:18774',
     models: [{ id: 'claude-gpt-5.6-sol[1m]' }],
   }));
 
   spawnGatewayProcessSync(process.execPath, [CLI, 'ensure', '--quiet'], {
-    env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' },
-    isolatedOverrides: { CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_WORKER_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' },
+    env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' },
+    isolatedOverrides: { CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_WORKER_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' },
     encoding: 'utf8',
   });
 
   const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
   assert.equal(settings.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW, undefined);
-  assert.equal(settings.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:18764');
+  assert.equal(settings.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:18774');
   assert.equal(settings.env.USER_SETTING, 'keep-me');
   const migratedCache = JSON.parse(fs.readFileSync(gatewayCache, 'utf8'));
-  assert.equal(migratedCache.baseUrl, 'http://127.0.0.1:18764');
+  assert.equal(migratedCache.baseUrl, 'http://127.0.0.1:18774');
   // gpt-5.6-sol's advertised window is 920000, well above the 200k threshold, so its
   // canonical MODEL_WINDOW_POLICY id keeps the [1m] suffix; this row was never legacy.
   assert.equal(migratedCache.models[0].id, 'claude-gpt-5.6-sol[1m]');
 });
 
 test('SessionStart cleanup leaves unrelated gateway caches alone', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-other-cache-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-other-cache-'));
   const cacheDir = path.join(home, '.claude', 'cache');
   fs.mkdirSync(cacheDir, { recursive: true });
   const gatewayCache = path.join(cacheDir, 'gateway-models.json');
@@ -986,8 +986,8 @@ test('SessionStart cleanup leaves unrelated gateway caches alone', () => {
   fs.writeFileSync(gatewayCache, original);
 
   spawnGatewayProcessSync(process.execPath, [CLI, 'ensure', '--quiet'], {
-    env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' },
-    isolatedOverrides: { CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_WORKER_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' },
+    env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' },
+    isolatedOverrides: { CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_WORKER_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' },
     encoding: 'utf8',
   });
 
@@ -995,19 +995,19 @@ test('SessionStart cleanup leaves unrelated gateway caches alone', () => {
 });
 
 test('env wiring preserves Claude 1M aliases and removes the unsafe global threshold', () => {
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-env-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-env-'));
   // Isolated home plus an unrunnable probe: wiring writes pin state under
   // ~/.claude, and the assertions below are about the shipped defaults, not
   // whatever a locally installed Claude CLI happens to report.
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-env-home-'));
-  const env = { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765', CODEX_GATEWAY_CLAUDE_BIN: missingClaude(home) };
-  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_WORKER_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' };
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-env-home-'));
+  const env = { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775', CODEX_GATEWAY_CLAUDE_BIN: missingClaude(home) };
+  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_WORKER_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' };
   fs.mkdirSync(path.join(home, '.claude'), { recursive: true });
   fs.writeFileSync(path.join(home, '.claude', 'settings.json'), JSON.stringify({ env: { CLAUDE_CODE_MAX_CONTEXT_TOKENS: '920000' } }));
   fs.mkdirSync(path.join(cwd, '.claude'), { recursive: true });
   fs.writeFileSync(path.join(cwd, '.claude', 'settings.json'), JSON.stringify({
     env: {
-      ANTHROPIC_BASE_URL: 'http://127.0.0.1:18764',
+      ANTHROPIC_BASE_URL: 'http://127.0.0.1:18774',
       CLAUDE_CODE_AUTO_COMPACT_WINDOW: '950000',
       USER_SETTING: 'keep-me',
     },
@@ -1031,7 +1031,7 @@ test('env wiring preserves Claude 1M aliases and removes the unsafe global thres
   assert.equal(settings.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS, '64000');
   assert.equal(settings.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS, undefined);
   assert.equal(settings.env.ENABLE_TOOL_SEARCH, 'true');
-  assert.equal(settings.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:18764');
+  assert.equal(settings.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:18774');
   assert.equal(legacy.env.ANTHROPIC_BASE_URL, undefined);
   assert.equal(legacy.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW, undefined);
   assert.equal(legacy.env.USER_SETTING, 'keep-me');
@@ -1139,10 +1139,10 @@ test('pin version comparison handles older, equal, newer, and missing minor vers
 });
 
 test('a CLI alias that lags the shipped default loses to it, and pins and doctor name the lagging detection', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-lagging-pin-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-lagging-pin-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-lagging-pin-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-lagging-pin-project-'));
   const cliVersion = 'Claude Code 2.1.280';
-  const cachePath = path.join(home, '.claude', 'model-gateway', 'detected-pins.json');
+  const cachePath = path.join(home, '.claude', 'code-team', 'detected-pins.json');
   const lagLine = 'opus: claude-opus-5-5[1m] (shipped default; this CLI resolves claude-opus-5[1m], which it replaces)';
   fs.mkdirSync(path.dirname(cachePath), { recursive: true });
   fs.writeFileSync(cachePath, JSON.stringify({
@@ -1173,9 +1173,9 @@ test('a CLI alias that lags the shipped default loses to it, and pins and doctor
 });
 
 test('a failed alias does not carry a stale pin into a new Claude CLI version', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-stale-pin-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-stale-pin-home-'));
   const claude = installFakeClaude(home);
-  const cachePath = path.join(home, '.claude', 'model-gateway', 'detected-pins.json');
+  const cachePath = path.join(home, '.claude', 'code-team', 'detected-pins.json');
   fs.mkdirSync(path.dirname(cachePath), { recursive: true });
   fs.writeFileSync(cachePath, JSON.stringify({
     cliVersion: 'fake-claude 0.9.0',
@@ -1294,7 +1294,7 @@ test('the local Fable probe keeps proxy observation active for the installed Cla
 });
 
 test('the proxy observer sees no egress from a fake Claude probe', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-proxy-pin-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-proxy-pin-home-'));
   const claude = installFakeClaude(home);
   const proxy = await startCountingProxy(t);
   const environment = fakeProbeEnvironment(home, claude, proxy.url);
@@ -1320,7 +1320,7 @@ test('the proxy observer sees no egress from a fake Claude probe', async (t) => 
 });
 
 test('the proxy observer catches fake Claude egress', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-proxy-pin-home-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-proxy-pin-home-'));
   const claude = installFakeClaude(home);
   const proxy = await startCountingProxy(t);
   const environment = { ...fakeProbeEnvironment(home, claude, proxy.url), FAKE_CLAUDE_EGRESS: '1' };
@@ -1345,11 +1345,11 @@ function runSyncUnwiredPins(cwd, env) {
 }
 
 test('a project with the gateway turned off keeps its pins current across Claude releases', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-unwired-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-unwired-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-unwired-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-unwired-project-'));
   const claude = installFakeClaude(home);
   const settingsFile = path.join(cwd, '.claude', 'settings.local.json');
-  const cachePath = path.join(home, '.claude', 'model-gateway', 'detected-pins.json');
+  const cachePath = path.join(home, '.claude', 'code-team', 'detected-pins.json');
   fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
   // What "turn the gateway off for this project" leaves behind: every gateway
   // key except ANTHROPIC_BASE_URL. Fable holds a value the plugin never writes,
@@ -1425,7 +1425,7 @@ function unwiredPinProject(prefix) {
 // The alias probes run between deciding to sync and writing, so a write made
 // by anything else in that window has to survive the sync.
 test('unwired pin sync keeps a settings edit made while the alias probes run', () => {
-  const { cwd, env, settingsFile, cleanup } = unwiredPinProject('model-gateway-unwired-race');
+  const { cwd, env, settingsFile, cleanup } = unwiredPinProject('code-team-unwired-race');
   try {
     runSyncUnwiredPins(cwd, { ...env, FAKE_CLAUDE_EDIT_JSON: JSON.stringify({ permissions: { allow: ['Bash(ls)'] } }) });
     const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
@@ -1437,11 +1437,11 @@ test('unwired pin sync keeps a settings edit made while the alias probes run', (
 });
 
 test('unwired pin sync leaves a file that was wired while the alias probes ran', () => {
-  const { cwd, env, settingsFile, cleanup } = unwiredPinProject('model-gateway-unwired-rewired');
+  const { cwd, env, settingsFile, cleanup } = unwiredPinProject('code-team-unwired-rewired');
   try {
-    runSyncUnwiredPins(cwd, { ...env, FAKE_CLAUDE_EDIT_JSON: JSON.stringify({ env: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:18764' } }) });
+    runSyncUnwiredPins(cwd, { ...env, FAKE_CLAUDE_EDIT_JSON: JSON.stringify({ env: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:18774' } }) });
     const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
-    assert.equal(settings.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:18764');
+    assert.equal(settings.env.ANTHROPIC_BASE_URL, 'http://127.0.0.1:18774');
     assert.equal(settings.env.ANTHROPIC_DEFAULT_OPUS_MODEL, 'claude-opus-5[1m]', 'a wired file is syncGatewayWiring\'s to update');
   } finally {
     cleanup();
@@ -1449,8 +1449,8 @@ test('unwired pin sync leaves a file that was wired while the alias probes ran',
 });
 
 test('pin sync leaves foreign and still-wired settings untouched', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-foreign-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-foreign-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-foreign-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-foreign-project-'));
   const claude = installFakeClaude(home);
   const settingsFile = path.join(cwd, '.claude', 'settings.local.json');
   fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
@@ -1461,7 +1461,7 @@ test('pin sync leaves foreign and still-wired settings untouched', () => {
   const userFile = path.join(home, '.claude', 'settings.json');
   const wired = JSON.stringify({
     env: {
-      ANTHROPIC_BASE_URL: 'http://127.0.0.1:18764',
+      ANTHROPIC_BASE_URL: 'http://127.0.0.1:18774',
       CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY: '1',
       ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-5[1m]',
     },
@@ -1481,8 +1481,8 @@ test('pin sync leaves foreign and still-wired settings untouched', () => {
 });
 
 test('Claude pin overrides persist outside the plugin and are applied by rewiring', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-pins-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-pins-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-pins-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-pins-project-'));
   const claude = installFakeClaude(home);
   const env = {
     ...process.env,
@@ -1494,7 +1494,7 @@ test('Claude pin overrides persist outside the plugin and are applied by rewirin
   try {
     const set = spawnGatewayProcessSync(process.execPath, [CLI, 'pin', '--opus', 'claude-opus-4-8[1m]'], { env, encoding: 'utf8' });
     assert.equal(set.status, 0, set.stderr);
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'pins.json'), 'utf8')), {
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, '.claude', 'code-team', 'pins.json'), 'utf8')), {
       opus: 'claude-opus-4-8[1m]',
     });
 
@@ -1513,7 +1513,7 @@ test('Claude pin overrides persist outside the plugin and are applied by rewirin
     assert.equal(cleared.status, 0, cleared.stderr);
     const rewired = spawnGatewayProcessSync(process.execPath, [CLI, 'env', '--write-user'], { cwd, env, encoding: 'utf8' });
     assert.equal(rewired.status, 0, rewired.stderr);
-    const detected = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'detected-pins.json'), 'utf8'));
+    const detected = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'code-team', 'detected-pins.json'), 'utf8'));
     assert.equal(detected.pins.opus, 'claude-opus-9[1m]');
     assert.equal(JSON.parse(fs.readFileSync(settingsFile, 'utf8')).env.ANTHROPIC_DEFAULT_OPUS_MODEL, detected.pins.opus);
 
@@ -1527,9 +1527,9 @@ test('Claude pin overrides persist outside the plugin and are applied by rewirin
 });
 
 test('rewiring without a Claude CLI wires the shipped pins and caches no detection', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-nocli-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-nocli-project-'));
-  const env = { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765', CODEX_GATEWAY_CLAUDE_BIN: missingClaude(home) };
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-nocli-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-nocli-project-'));
+  const env = { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775', CODEX_GATEWAY_CLAUDE_BIN: missingClaude(home) };
   try {
     const wired = spawnGatewayProcessSync(process.execPath, [CLI, 'env', '--write-user'], { cwd, env, encoding: 'utf8' });
     assert.equal(wired.status, 0, wired.stderr);
@@ -1537,7 +1537,7 @@ test('rewiring without a Claude CLI wires the shipped pins and caches no detecti
     assert.equal(settings.ANTHROPIC_DEFAULT_OPUS_MODEL, 'claude-opus-5-5[1m]');
     assert.equal(settings.ANTHROPIC_DEFAULT_SONNET_MODEL, 'claude-sonnet-5-5[1m]');
     assert.equal(settings.ANTHROPIC_DEFAULT_FABLE_MODEL, 'claude-fable-5-1[1m]');
-    assert.equal(fs.existsSync(path.join(home, '.claude', 'model-gateway', 'detected-pins.json')), false);
+    assert.equal(fs.existsSync(path.join(home, '.claude', 'code-team', 'detected-pins.json')), false);
 
     const override = spawnGatewayProcessSync(process.execPath, [CLI, 'pin', '--opus', 'claude-opus-4-8[1m]'], { env, encoding: 'utf8' });
     assert.equal(override.status, 0, override.stderr);
@@ -1553,8 +1553,8 @@ test('rewiring without a Claude CLI wires the shipped pins and caches no detecti
 });
 
 test('credential-free alias probes cache valid 1M defaults without replacing overrides', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-probe-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-probe-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-probe-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-probe-project-'));
   const { bin, command, logFile } = installFakeClaude(home);
   const env = {
     ...process.env,
@@ -1576,7 +1576,7 @@ test('credential-free alias probes cache valid 1M defaults without replacing ove
     assert.equal(settings.ANTHROPIC_DEFAULT_OPUS_MODEL, 'claude-opus-4-8[1m]');
     assert.equal(settings.ANTHROPIC_DEFAULT_SONNET_MODEL, 'claude-sonnet-9[1m]');
     assert.equal(settings.ANTHROPIC_DEFAULT_FABLE_MODEL, 'claude-fable-9[1m]');
-    const cache = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'detected-pins.json'), 'utf8'));
+    const cache = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'code-team', 'detected-pins.json'), 'utf8'));
     assert.equal(cache.pins.opus, 'claude-opus-9[1m]');
     assert.equal(cache.pins.fable, 'claude-fable-9[1m]');
     const probes = fs.readFileSync(logFile, 'utf8').trim().split('\n').map(JSON.parse);
@@ -1604,8 +1604,8 @@ test('credential-free alias probes cache valid 1M defaults without replacing ove
 });
 
 test('doctor describes project-local wiring as the default', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-doctor-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-doctor-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-doctor-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-doctor-project-'));
   const { ANTHROPIC_BASE_URL, CLAUDE_CODE_MAX_CONTEXT_TOKENS, ...environment } = process.env;
   try {
     const result = spawnGatewayProcessSync(process.execPath, [CLI, 'doctor'], {
@@ -1630,11 +1630,11 @@ test('doctor describes project-local wiring as the default', () => {
 });
 
 test('doctor reports the 1M Codex resolver aliases and a lower explicit cap', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-client-window-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-client-window-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-client-window-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-client-window-project-'));
   const { ANTHROPIC_BASE_URL, CLAUDE_CODE_MAX_CONTEXT_TOKENS, ...environment } = process.env;
   const env = { ...environment, HOME: home, USERPROFILE: home, CODEX_GATEWAY_CLAUDE_BIN: missingClaude(home) };
-  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_WORKER_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' };
+  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_WORKER_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' };
   try {
     const wired = spawnGatewayProcessSync(process.execPath, [CLI, 'env', '--write-project'], {
       cwd,
@@ -1674,8 +1674,8 @@ test('doctor reports the 1M Codex resolver aliases and a lower explicit cap', ()
 });
 
 test('doctor warns when the configured Codex window resolves to the unknown-model default', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-unknown-window-home-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-unknown-window-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-unknown-window-home-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-unknown-window-project-'));
   const { ANTHROPIC_BASE_URL, CLAUDE_CODE_MAX_CONTEXT_TOKENS, ...environment } = process.env;
   const env = {
     ...environment,
@@ -1684,7 +1684,7 @@ test('doctor warns when the configured Codex window resolves to the unknown-mode
     CODEX_GATEWAY_CONTEXT_WINDOW: '200000',
     CODEX_GATEWAY_CLAUDE_BIN: missingClaude(home),
   };
-  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_WORKER_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' };
+  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_WORKER_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' };
   try {
     const result = spawnGatewayProcessSync(process.execPath, [CLI, 'doctor'], {
       cwd,
@@ -1735,12 +1735,12 @@ test('doctor detects live shim ids that differ from the policy aliases', () => {
 });
 
 test('env with no scope flag explains project wiring and writes nothing', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-wiring-mode-'));
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-wiring-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-wiring-mode-'));
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-wiring-project-'));
   try {
     const shown = spawnGatewayProcessSync(process.execPath, [CLI, 'env'], {
       cwd,
-      env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' },
+      env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' },
       encoding: 'utf8',
     });
     assert.equal(shown.status, 0, shown.stderr);
@@ -1752,11 +1752,11 @@ test('env with no scope flag explains project wiring and writes nothing', () => 
 
     const retired = spawnGatewayProcessSync(process.execPath, [CLI, 'env', '--mode', 'global'], {
       cwd,
-      env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' },
+      env: { ...process.env, HOME: home, USERPROFILE: home, CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' },
       encoding: 'utf8',
     });
     assert.equal(retired.status, 2);
-    assert.equal(fs.existsSync(path.join(home, '.claude', 'model-gateway', 'wiring.json')), false);
+    assert.equal(fs.existsSync(path.join(home, '.claude', 'code-team', 'wiring.json')), false);
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
     fs.rmSync(cwd, { recursive: true, force: true });
@@ -1766,7 +1766,7 @@ test('env with no scope flag explains project wiring and writes nothing', () => 
 test('SessionStart nudges hand off gateway actions to the runnable skill', () => {
   const commandsSource = fs.readFileSync(COMMANDS, 'utf8');
   const runtimeSource = fs.readFileSync(RUNTIME, 'utf8');
-  assert.match(commandsSource, /Run \/model-gateway:model-gateway, then use its env --write-project command/);
+  assert.match(commandsSource, /Run \/code-team:code-team, then use its env --write-project command/);
   assert.match(fs.readFileSync(path.join(path.dirname(COMMANDS), 'request-worker.js'), 'utf8'), /codexReadinessMessage\(state, undefined, upstreamBlocked \|\| upstreamUnavailable\)/);
   assert.match(runtimeSource, /claude-code-proxy is missing[\s\S]*No Anthropic fallback was used\./);
   assert.doesNotMatch(commandsSource, /(?:Run|run):? env --/);

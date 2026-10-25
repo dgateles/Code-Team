@@ -1,0 +1,40 @@
+{
+  "name": "code-team",
+  "owner": {
+    "name": "Douglas Teles"
+  },
+  "metadata": {
+    "description": "Code Team: use Claude Code with Antigravity, GPT, Kimi, Grok and other models.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "code-team",
+      "source": "./",
+      "description": "Use Claude Code with Antigravity, GPT, Kimi, Grok and other models.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Douglas Teles"
+      },
+      "homepage": "https://github.com/dgateles/Code-Team",
+      "repository": "https://github.com/dgateles/Code-Team",
+      "license": "MIT",
+      "keywords": [
+        "model-picker",
+        "gateway",
+        "proxy",
+        "providers",
+        "codex",
+        "chatgpt",
+        "grok",
+        "deepseek",
+        "kimi",
+        "glm",
+        "minimax",
+        "openrouter",
+        "antigravity",
+        "anthropic-compatible"
+      ]
+    }
+  ]
+}

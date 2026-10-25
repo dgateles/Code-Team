@@ -11,7 +11,7 @@ const test = require('node:test');
 const { isolateInProcessGatewayEnvironment, spawnGatewayProcess, spawnGatewayProcessSync } = require('./support.js');
 
 isolateInProcessGatewayEnvironment(test);
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const gw = require(CLI);
 const requestWorker = require('../lib/request-worker.js');
 
@@ -70,7 +70,7 @@ async function waitFor(predicate) {
 test('dispatch model stays routable when omitted from the default model listing', async (t) => {
   const shimPort = await freePort();
   const proxyPort = await freePort();
-  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-dispatch-'));
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-dispatch-'));
   const routeLog = path.join(logDir, 'routes.jsonl');
   const forwarded = [];
   const proxy = http.createServer((req, res) => {
@@ -283,7 +283,7 @@ test('dispatch model rejects missing and malformed route markers', async (t) => 
       type: 'error',
       error: {
         type: 'invalid_request_error',
-        message: 'model-gateway: dispatch model requires exactly one [sidequest-route model=... effort=... ticket=...] marker in the conversation; redispatch the ticket',
+        message: 'code-team: dispatch model requires exactly one [sidequest-route model=... effort=... ticket=...] marker in the conversation; redispatch the ticket',
       },
     });
   }
@@ -297,7 +297,7 @@ test('dispatch model rejects missing and malformed route markers', async (t) => 
     type: 'error',
     error: {
       type: 'invalid_request_error',
-      message: 'capability_rejected: beta_header:message-threads-2026-08-12; model-gateway Codex and Grok backends hold no conversation state. Resend this turn with the full message history.',
+      message: 'capability_rejected: beta_header:message-threads-2026-08-12; code-team Codex and Grok backends hold no conversation state. Resend this turn with the full message history.',
       details: { error_code: 'thread_unsupported_request' },
     },
   });
@@ -439,7 +439,7 @@ test('dispatch route ignores markers echoed through tool_result blocks end-to-en
     type: 'error',
     error: {
       type: 'invalid_request_error',
-      message: 'model-gateway: dispatch model requires exactly one [sidequest-route model=... effort=... ticket=...] marker in the conversation; redispatch the ticket',
+      message: 'code-team: dispatch model requires exactly one [sidequest-route model=... effort=... ticket=...] marker in the conversation; redispatch the ticket',
     },
   });
   assert.equal(forwarded.length, 1);
@@ -462,7 +462,7 @@ test('buildCatalog publishes the v4 provider-generic model contract', () => {
     'claude-grok-build',
   ], readiness);
   assert.equal(catalog.schemaVersion, 4);
-  assert.equal(catalog.source, 'model-gateway');
+  assert.equal(catalog.source, 'code-team');
   assert.equal(catalog.writtenBy, JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.claude-plugin', 'plugin.json'), 'utf8')).version);
   assert.deepEqual(catalog.providers, readiness);
   assert.deepEqual(catalog.codexReadiness, catalog.providers.codex);
@@ -595,7 +595,7 @@ test('writeCatalogFile replaces a catalog when the fetched set contains a new mo
 
 test('SQ-2208: catalog --refresh --json keeps stdout parseable while it logs a preserved subset', async (t) => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-json-stdout-'));
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   fs.mkdirSync(state, { recursive: true });
   fs.writeFileSync(path.join(state, 'catalog.json'), JSON.stringify(gw.buildCatalog([
     'claude-gpt-5.6-terra',
@@ -643,11 +643,11 @@ test('SQ-2208: catalog --refresh --json keeps stdout parseable while it logs a p
 test('doctor prints the catalog writer version', () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'catalog-doctor-'));
   try {
-    const state = path.join(home, '.claude', 'model-gateway');
+    const state = path.join(home, '.claude', 'code-team');
     fs.mkdirSync(state, { recursive: true });
     fs.writeFileSync(path.join(state, 'catalog.json'), JSON.stringify({
       schemaVersion: 4,
-      source: 'model-gateway',
+      source: 'code-team',
       writtenBy: '0.30.0',
       models: [],
     }));

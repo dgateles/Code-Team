@@ -6,7 +6,7 @@
 // pipe. Gateway controllers run from interactive shells and Claude Code hooks
 // that export COLUMNS (e.g. 117 in a real PTY), so the four probe code paths
 // (processInfoSync, processTableSync, processInfoAsync, processTableAsync)
-// saw commands cut off before `.../model-gateway/bin/model-gateway.js`.
+// saw commands cut off before `.../code-team/bin/code-team.js`.
 // gatewayInstallRootFromCommand() then failed to extract the install root and
 // the gateway misclassified its OWN supervisor/proxy processes as not owned:
 // pid records were retired and legitimate stop/restart flows refused to act.
@@ -16,7 +16,7 @@
 // asserting own/foreign/unknown ownership classification and full, untruncated
 // command lines in all four probes. No mocks, no ports, and the module HOME is
 // redirected to a temp fixture home before lib is loaded, so the live gateway
-// home and :18764 are never touched.
+// home and :18774 are never touched.
 
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
@@ -28,7 +28,7 @@ const test = require('node:test');
 
 // Isolate HOME before any lib require: runtime.js derives STATE/LOGS/PROXY_BIN
 // from os.homedir() at load time, and os.homedir() honors $HOME on POSIX.
-const fixtureHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-ps-width-home-'));
+const fixtureHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-ps-width-home-'));
 process.env.HOME = fixtureHome;
 delete process.env.CLAUDE_CONFIG_DIR;
 
@@ -50,7 +50,7 @@ const LSTART_PATTERN = /^\w{3}\s+\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}\s+\d{4}$/;
 // default, which procps leaves unlimited — the control case).
 const WIDTHS = [80, 117, 128, 133, 200, null];
 
-const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-ps-width-'));
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-ps-width-'));
 const IDLE_FIXTURE_SOURCE = `'use strict';\n// Idle fixture: stays alive so ps probes can observe it.\nsetInterval(() => {}, 1000);\n`;
 
 // A deliberately deep directory so every fixture argv exceeds 200 columns
@@ -64,10 +64,10 @@ fs.writeFileSync(idleFixtureScript, IDLE_FIXTURE_SOURCE);
 fs.writeFileSync(unknownFixtureScript, IDLE_FIXTURE_SOURCE);
 
 // A foreign install shaped exactly like a real plugin cache install root
-// (…/plugins/cache/<marketplace>/model-gateway/<version>/bin/model-gateway.js)
+// (…/plugins/cache/<marketplace>/code-team/<version>/bin/code-team.js)
 // but under the temp fixture root, so it never matches this worktree install.
-const foreignInstallRoot = path.join(fixtureRoot, 'foreign-install', '.claude', 'plugins', 'cache', 'eigenwise-toolshed', 'model-gateway', '9.99.99');
-const foreignCliPath = path.join(foreignInstallRoot, 'bin', 'model-gateway.js');
+const foreignInstallRoot = path.join(fixtureRoot, 'foreign-install', '.claude', 'plugins', 'cache', 'eigenwise-toolshed', 'code-team', '9.99.99');
+const foreignCliPath = path.join(foreignInstallRoot, 'bin', 'code-team.js');
 fs.mkdirSync(path.dirname(foreignCliPath), { recursive: true });
 fs.writeFileSync(foreignCliPath, IDLE_FIXTURE_SOURCE);
 
@@ -91,7 +91,7 @@ function spawnIdleFixture(args) {
 // own: the sentinel-carrying command line contains THIS install's CLI path
 // (as a real gateway process command line does), followed by long padding.
 const ownFixture = spawnIdleFixture([idleFixtureScript, CLI_PATH, paddingArg, sentinels.own]);
-// foreign: a live process running a different install root's model-gateway.js.
+// foreign: a live process running a different install root's code-team.js.
 const foreignFixture = spawnIdleFixture([foreignCliPath, paddingArg, sentinels.foreign]);
 // unknown: a live long-command process with no gateway path at all.
 const unknownFixture = spawnIdleFixture([unknownFixtureScript, paddingArg, sentinels.unknown]);

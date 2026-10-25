@@ -1,11 +1,41 @@
 ---
-name: model-gateway
+name: code-team
 description: >-
-  Set up, update, or diagnose the local ChatGPT/Codex gateway for Claude Code's /model picker. Use
-  for gateway setup, login, model visibility, routing, or failures.
+  Connect, set up, update, or diagnose Code Team, the local gateway that puts other providers' models
+  (ChatGPT/Codex, Grok, Antigravity, DeepSeek, Kimi, GLM, MiniMax, OpenRouter, or any Anthropic
+  Messages-compatible endpoint) in Claude Code's /model picker. Use for "connect DeepSeek for me",
+  adding a custom provider, login, model visibility, routing, or failures.
 ---
 
-# model-gateway
+# Code Team
+
+Code Team is based on Model Gateway by Eigenwise (MIT). It is an independent project, not affiliated with Anthropic.
+
+## Connections and providers (start here)
+
+Each connection is one command; the slash commands are thin wrappers over it:
+
+| User asks for | Run |
+| --- | --- |
+| list connections and status | `connect` (no name) |
+| ChatGPT/Codex | `connect gpt` (browser sign-in) |
+| Grok | `connect grok` (needs an existing `grok` CLI login) |
+| Antigravity | `connect antigravity` (Google terms warning first, see below) |
+| DeepSeek, Kimi, GLM, MiniMax, OpenRouter | `connect deepseek` / `kimi` / `glm` / `minimax` / `openrouter` (`--region cn` for Kimi, GLM and MiniMax China) |
+| any other Anthropic-compatible endpoint | `provider add --custom --id <id> --base-url <url> ...`, then `provider test <id>` |
+| remove one | `disconnect <name>` |
+
+Exit codes: 0 done, 1 failed, 2 usage error, 3 the user has to act first. Always relay what the command printed and its "Next:" line. Every successful connect ends with: fully restart Claude Code, then open `/model`; a plugin reload does not refresh the picker.
+
+**API keys.** Prefer an environment variable (each preset names one, e.g. `DEEPSEEK_API_KEY`); then no key is written to disk. If the variable is not set, `connect <preset>` exits 3 without changing anything. Ask the user whether they want to set the variable (then restart Claude Code and run the command again) or paste the key. If they paste it, pass it on stdin with `--api-key-stdin` (for example a quoted heredoc), never as a command-line argument, and never repeat, print, or log the key. It is then stored in `~/.claude/code-team/providers.json`, which is private to the user. `connect` validates the key with `provider test` and leaves providers.json unchanged when the test fails.
+
+**Antigravity.** Before running `connect antigravity`, show the user this warning in full and ask for an explicit yes: using the Antigravity/Google login outside Google's own product violates Google's terms of service and can get the Google account suspended. Only after a clear yes, run it with `--accept-google-terms`; the acceptance is recorded with its date in providers.json. Never pass the flag on the user's behalf without that yes. If `~/.gemini/antigravity-cli/cpa-connection.json` exists, the user's own CLIProxyAPI on 127.0.0.1:8317 is used. Otherwise the command downloads CLIProxyAPI from its GitHub releases (checksum-verified), opens the Antigravity browser sign-in (`-antigravity-login`; add `--no-browser` to print the URL instead), starts it on 127.0.0.1:18776, and registers an autostart. The sign-in waits for the browser callback, so run it with a long timeout.
+
+**Custom providers.** `provider add --custom --id <id> --base-url <url> [--name N] [--api-key-env NAME | --api-key-stdin] [--auth-style x-api-key|bearer|both] [--model id[:contextWindow]]... | [--models-from list [--owned-by o]] [--context-window N] [--header "Name: value"]... [--autostart-command C --autostart-arg A...]`. The id is lowercase letters and digits starting with a letter; `gpt`, `grok`, `anthropic`, `claude`, `codex`, `opus`, `sonnet`, `haiku`, `fable` are reserved. The base URL stops before `/v1`; plain http is allowed only for loopback. Picker ids are `claude-<id>-<model>` (`[1m]` added when the window is above 200k). `provider test <id>` checks the model list, then `count_tokens`; it spends tokens only with `--live`.
+
+Requests to a provider carry only the provider's configured key and headers. The user's Anthropic/claude.ai credentials, cookies and `anthropic-beta` headers are never forwarded to a third party.
+
+## How the gateway works
 
 Two local processes give Claude Code native access to the user's ChatGPT subscription models:
 `claude-code-proxy` (does OpenAI OAuth and translates Anthropic Messages API to the Codex
@@ -16,7 +46,7 @@ Codex models with a `claude-` prefix because Claude Code's model discovery drops
 start with `claude`/`anthropic`. That prefix is shared with the real Anthropic ids, so the route
 is decided by the backend family segment (`claude-gpt-*`, `claude-grok-*`), never by the prefix.
 
-All commands: `node ~/.claude/model-gateway/model-gateway.js <command>`. SessionStart recreates this stable launcher from Claude Code's installed-plugin registry, so it follows upgrades and falls back to an installed downgrade; it reports a missing install directly.
+All commands: `node ~/.claude/code-team/code-team.js <command>` (or `node "${CLAUDE_PLUGIN_ROOT}/bin/code-team.js" <command>` before the first session start has written that launcher). SessionStart recreates this stable launcher from Claude Code's installed-plugin registry, so it follows upgrades and falls back to an installed downgrade; it reports a missing install directly.
 
 ## Recovery before a model request
 
@@ -26,7 +56,7 @@ Wiring installs owned readiness hooks in that wiring's settings scope. Project w
 
 SessionStart `startup|resume` attempts early recovery but cannot block a prompt. UserPromptSubmit synchronously checks readiness and attempts bounded recovery before model access. The recovery child has a 25-second deadline; the hook has a 35-second timeout and `onFailure: block`. A refusal asks the user to fix the local problem and resubmit. `recover` restores readiness without changing settings, pins or caches; `start` and `setup` explicitly resume an intentional stop. `stop` persists across reboot and upgrades, and automatic recovery honors it.
 
-Maintenance `setup --preserve-wiring` preserves intentional stop, including acquisition failures, and never starts a stopped gateway. Intentional stop is cleared once an explicit `start` or `setup` creates the supervisor process and records its PID; a launch that fails before that, including a spawn that yields no PID, leaves it stopped, and a PID-record failure after a successful spawn leaves both the marker and the process, so the next automatic path still refuses. A non-gateway effective endpoint is a cheap no-op before CLI resolution, even without an installed plugin. An absent `enabledPlugins` entry leaves recovery active; an explicit effective `false` for `model-gateway@eigenwise-toolshed` disables recovery without starting, stopping or touching gateway state. Project-local settings take precedence over project settings, then user settings; process endpoint env wins over settings endpoints. The disable notice names re-enabling the plugin or unwiring. `doctor` reports explicit plugin disable.
+Maintenance `setup --preserve-wiring` preserves intentional stop, including acquisition failures, and never starts a stopped gateway. Intentional stop is cleared once an explicit `start` or `setup` creates the supervisor process and records its PID; a launch that fails before that, including a spawn that yields no PID, leaves it stopped, and a PID-record failure after a successful spawn leaves both the marker and the process, so the next automatic path still refuses. A non-gateway effective endpoint is a cheap no-op before CLI resolution, even without an installed plugin. An absent `enabledPlugins` entry leaves recovery active; an explicit effective `false` for the `code-team` plugin disables recovery without starting, stopping or touching gateway state. Project-local settings take precedence over project settings, then user settings; process endpoint env wins over settings endpoints. The disable notice names re-enabling the plugin or unwiring. `doctor` reports explicit plugin disable.
 
 A non-gateway effective endpoint bypasses recovery. Host-disabled hooks and supervisor death inside an active turn, including subagents or compaction, are outside prompt-gate coverage. Do not promise recovery for those paths. Use stable `start`, `recover`, `doctor`, or `env --remove` locally when model access is unavailable. `doctor` reports gate presence, stop state and diagnostic paths. Unwire every registered scope before removing the plugin; remove project wiring with `env --remove` and user fallback with `env --remove --write-user`.
 
@@ -38,7 +68,7 @@ Project-local wiring is the standard setup. `env --write-project` writes the cur
 
 The first-run order matters:
 
-1. Install Model Gateway at the recommended project scope.
+1. Install Code Team at the recommended project scope.
 2. Reload plugins so the new skill is available.
 3. Invoke this skill and run `setup`.
 4. If setup says sign-in is needed, have the user complete `login`, then run `setup` again. The second setup finishes the download, wiring, and project confirmation.
@@ -55,13 +85,13 @@ gateway, then leaves its supervisor to finish in the background so it stays insi
 
 Setup fails before extraction when the required checksum asset is absent, its download fails, its contents are invalid or name a different archive, or the archive digest does not match. Report the verification failure; never skip the checksum check or run the unverified download.
 
-Use the bundled lifecycle commands for restarts and drains. They authenticate with the per-user `~/.claude/model-gateway/control-token` file. Never print or copy this secret into a conversation, request body, or settings file. Browser-origin lifecycle requests are refused, and a replacement worker must be this CLI or a non-older sibling within the same resolved plugin cache. Development checkouts cannot hot-switch to unrelated installations. After updating, restart the calling Claude Code process to load the current control protocol. These controls do not authenticate inference requests to the separate proxy or protect against a process with the same OS-user access.
+Use the bundled lifecycle commands for restarts and drains. They authenticate with the per-user `~/.claude/code-team/control-token` file. Never print or copy this secret into a conversation, request body, or settings file. Browser-origin lifecycle requests are refused, and a replacement worker must be this CLI or a non-older sibling within the same resolved plugin cache. Development checkouts cannot hot-switch to unrelated installations. After updating, restart the calling Claude Code process to load the current control protocol. These controls do not authenticate inference requests to the separate proxy or protect against a process with the same OS-user access.
 
 ```bash
-node ~/.claude/model-gateway/model-gateway.js setup
+node ~/.claude/code-team/code-team.js setup
 # only if setup says sign-in is needed:
-node ~/.claude/model-gateway/model-gateway.js login    # browser OAuth; --device for headless
-node ~/.claude/model-gateway/model-gateway.js setup    # finishes the wiring
+node ~/.claude/code-team/code-team.js login    # browser OAuth; --device for headless
+node ~/.claude/code-team/code-team.js setup    # finishes the wiring
 ```
 
 `login` opens the user's browser; they complete it themselves (suggest `! node ... login` if it
@@ -75,21 +105,21 @@ The winning `ANTHROPIC_BASE_URL` source follows Claude Code's precedence: proces
 current-project `.claude/settings.local.json`, project `.claude/settings.json`, then user
 `~/.claude/settings.json`. A process export always wins, so settings writes cannot replace it.
 
-When `doctor` or SessionStart says that process env shadows a wired settings file, Model Gateway is
+When `doctor` or SessionStart says that process env shadows a wired settings file, Code Team is
 bypassed. If the user controls the Claude Code CLI launch, they can correct or unset
 `ANTHROPIC_BASE_URL`, then restart. If the host replaces that value, use the supported Claude Code CLI
-on the wired project instead. Model Gateway does not support Desktop routing under forced overrides on
+on the wired project instead. Code Team does not support Desktop routing under forced overrides on
 Windows or macOS, and settings, parent, or User-scope edits cannot be promised to win.
 
 `env --write-user --reconcile` is confirmation-gated. Plain `env --write-user` writes the shared
 user fallback, then lists recorded projects whose local URL differs without changing their files.
-The confirmed command removes only Model Gateway-owned keys from those other projects'
+The confirmed command removes only Code Team-owned keys from those other projects'
 `.claude/settings.local.json` files: its base URL, the three Claude alias pins, and static gateway
 flags whose values equal plugin defaults. It leaves unrelated settings alone, skips projects already
 agreeing, cannot change `process.env`, and needs a restart to affect a new session.
 Discovery needs Claude Code v2.1.129+; `models` shows exactly what the shim advertises. Claude Code
 only refetches gateway discovery when it has an API-key credential. OAuth subscriptions do not give it
-one, so Model Gateway writes Claude Code's discovery cache whenever its advertised list changes, but
+one, so Code Team writes Claude Code's discovery cache whenever its advertised list changes, but
 only from a list the proxy answered. While the proxy is unreachable the shim serves `models.json` or its
 built-in list, keeps the previous cache, retries the proxy on its next refresh tick, and `status` says
 `fallback catalog (proxy unreachable)`. `setup --preserve-wiring` (what the Toolshed updater runs) never
@@ -100,8 +130,8 @@ session start. `/reload-plugins` does not reload it. Restoring or refreshing aut
 install needs no restart of the current Claude Code process: the proxy is a separate process, so once `login` + `setup` re-authenticate it,
 the next request routes through cleanly. Settings, discovery-cache, plugin, or model-row changes do need a full restart of the affected project process. Keep these two recovery paths separate. The shim supervisor also probes the proxy's `/v1/models` endpoint
 while it runs, confirming a failed probe through a fresh connection before restarting an unavailable proxy with single-flight bounded backoff. It leaves a healthy proxy
-alone. Recovery output remains in `~/.claude/model-gateway/logs/guardian.log`; bounded lifecycle records in
-`~/.claude/model-gateway/logs/lifecycle.jsonl` identify supervisor, worker, and proxy PIDs, orderly
+alone. Recovery output remains in `~/.claude/code-team/logs/guardian.log`; bounded lifecycle records in
+`~/.claude/code-team/logs/lifecycle.jsonl` identify supervisor, worker, and proxy PIDs, orderly
 stop/restart requests, observed exits, and recovery outcomes. Use `doctor` to print the evidence path and
 the last observed exit. An OS termination or force-killed supervisor may leave no final record, so treat an
 absent exit record as absence of evidence, not a clean shutdown. Cleanup accepts a PID record whose start time matches even when the live command line is unavailable, and deletes a record only when a readable command line contradicts it; it never stops a reused PID. On Windows, an unavailable command line can mean the process is elevated, so `doctor` names the condition and `stop` or `setup` must run from a session with the same privileges. Proxy recovery stops a listener using the shared proxy binary only
@@ -116,7 +146,7 @@ bring auth back, or you kill the session that was about to use it.
 - Typed: `/model claude-gpt-6.1-sol[1m]` or `/model claude-grok-4.5[1m]`. The picker and Sidequest catalog emit those exact ids. The suffix is stripped before routing to Codex or Grok.
 - `lib/runtime.js`'s exported `MODEL_WINDOW_POLICY` is the sole authority for gateway backend windows, picker aliases, advertised windows, and sentry mode. GPT-6.1 Sol, GPT-5.6 Sol, Terra, Luna, and GPT-6 Astra are measured rows. GPT-6.1 Sol is the default Codex model; GPT-6 Astra is reserved for frontier or high-stakes tickets. GPT ids absent from the table are deliberately advertised through its explicitly unmeasured 920k default, rather than silently inheriting a window. Grok 4.5 is a measured 500k row with a `[1m]` picker alias and the shared synthetic-413 sentry.
 - Codex GPT-5.6 through the ChatGPT Codex product (the subscription login this gateway routes to, not the pay-per-token API) accepted 920,012 input tokens and refused 935,012 on 2026-09-05 through claude-code-proxy 0.1.35 (upstream 55bf0b58). Every `synthetic-413` policy row keeps its backend-window-minus-40000 ceiling. With no saved `compactAt`, the lowest legacy environment trigger or cap-minus-85000 wins. With `compactAt.codex` or `compactAt.grok` saved, the explicit maximum replaces those legacy candidates, is clamped to the cap, and ignores `CODEX_GATEWAY_COMPACT_TRIGGER` without mutating it. Claude Code 2.1.261 ignores a settings-file `CLAUDE_CODE_MAX_CONTEXT_TOKENS` value for its own unrecognized-model resolver, so rows above 200k use their policy's recognized `[1m]` alias. That alias gives Claude Code a 1M client window, the closest available setting to the verified 920k backend window; it does not promise a 1M backend input limit. A lower explicit `autoCompactWindow` still wins. Use `/context` to inspect the selected model and effective cap.
-- **Context window and cost**: `context-window` saves backend windows in `~/.claude/model-gateway/context-window.json` (`--claude <tokens|full> --codex <tokens|full> --grok <tokens|full>`). Defaults stay Claude `full`, Codex `272000`, Grok `full`; existing installs are never auto-migrated. `/v1/models` advertises the cap and keeps `[1m]` ids. With no explicit maximum, the gateway's legacy cap policy subtracts 85000, so Codex still compacts past 187000.
+- **Context window and cost**: `context-window` saves backend windows in `~/.claude/code-team/context-window.json` (`--claude <tokens|full> --codex <tokens|full> --grok <tokens|full>`). Defaults stay Claude `full`, Codex `272000`, Grok `full`; existing installs are never auto-migrated. `/v1/models` advertises the cap and keeps `[1m]` ids. With no explicit maximum, the gateway's legacy cap policy subtracts 85000, so Codex still compacts past 187000.
 - **Direct gateway compaction maximum**: `context-window --codex-compact-at <tokens|cap>` and `--grok-compact-at <tokens|cap>` save positive whole counts under `compactAt`; `cap` removes the explicit field and restores the legacy policy. These flags have no 100000 floor. Window-only updates preserve saved maxima. An explicit maximum has no hidden 85000 subtraction; the cap and actual backend window minus 40000 remain authoritative. `status`, `doctor`, and catalog notes report the requested and effective trigger, actual backend window, limiting source, and any ignored `CODEX_GATEWAY_COMPACT_TRIGGER` unchanged. `--codex-compact-at 242000` is an opt-in example that leaves the 272000 cap unchanged. OpenAI bills input above 272k at 2x; the crossing turn and compaction request can still exceed 272k and pay double. Never promise this example keeps every request below the billing boundary.
 - **Sentry lifecycle**: Codex and Grok keep separate sentry state per session, agent, and model. Compaction requests bypass synthetic refusals. After a refusal, retries remain admitted until an ordinary response completes above the trigger; the next ordinary request gets another 413 with that observed count. Stream chunks, failed/incomplete responses, and high-usage compaction completions do not rearm it. Lower usage still resets the latch through the existing headroom watermark. This repairs the persistent latch after failed compaction; the original compaction failure's cause remains UNVERIFIED. Plugin reload does not update the running supervisor. Codex JSON rearms only for ordinary `end_turn`, `stop_sequence`, or `tool_use` responses; a tool handoff completes that assistant response. Null, missing, unknown, truncated, paused, and refused stop reasons leave the current attempt latched. This stop-reason rule applies only to sentry rearming; transport success, readiness recovery, and route telemetry keep their existing semantics.
 - **Native Claude window**: preserve `--claude <tokens|full>` and existing gateway-owned `autoCompactWindow` synchronization to project-wired `.claude/settings.local.json`; numeric windows require project-scoped wiring. Native engine headroom and exact trigger are unverified. `--claude-compact-at` and `compactAt.claude` are unsupported and refuse without writing. Same-model main/subagent thresholds are unverified; use one backend policy with no role inference. A lower native session window can bound gateway models too. After deliberately adopting a change, restart the gateway (`stop`, then `ensure`) and restart open Claude Code sessions for native-window or picker changes. No automatic 242000 adoption, machine environment mutation, or worker restart during implementation. `CODEX_GATEWAY_CONTEXT_WINDOW` still applies only when no Codex window is saved.
@@ -133,7 +163,7 @@ bring auth back, or you kill the session that was about to use it.
   `pin --opus claude-opus-5-5[1m]` (same for `--sonnet` and `--fable`), or use `pin --opus default`
   to return to auto-detection. Overrides always win. `pin` with no arguments and `doctor` show each
   effective pin, whether it is overridden, and which lagging CLI alias a shipped pin replaced. Overrides live in
-  `~/.claude/model-gateway/pins.json`, outside
+  `~/.claude/code-team/pins.json`, outside
   the plugin cache. A pin change, and every SessionStart pin refresh, updates every registered wired
   project's gateway-owned pins (so a new shipped default reaches them too) and skips any project with a
   user-owned pin value. Restart every open Claude Code session in an
@@ -151,7 +181,7 @@ bring auth back, or you kill the session that was about to use it.
   `gpt`/`codex`/non-Anthropic family marker before it reaches the picker or a session, whether the ID
   came from an explicit config entry or from discovery; a terminal `[1m]` is stripped first and does
   not change the outcome. Only a genuinely Anthropic-backed route (a real Claude alias) is usable
-  there. This is a Desktop-side restriction, not a Model Gateway bug, and there is no supported
+  there. This is a Desktop-side restriction, not a Code Team bug, and there is no supported
   workaround: do not suggest an Anthropic-named alias to disguise a Codex/Grok route, patch the
   Desktop binary, substitute credentials or auth, intercept TLS, or use a global env or hosts trick.
   Tell the user Desktop end-to-end Codex/Grok support is not available on this version; the Claude
@@ -179,10 +209,10 @@ bring auth back, or you kill the session that was about to use it.
 
   Save that as `.claude/agents/luna-reviewer.md` and start a new session before invoking it —
   definitions are read at session start, so a running session won't see one just added. Invoke with
-  `subagent_type: "luna-reviewer"` and no `model` argument. This needs only Model Gateway, not
+  `subagent_type: "luna-reviewer"` and no `model` argument. This needs only Code Team, not
   Sidequest: a concrete gateway id needs no route marker, only Sidequest's own `claude-codex-auto` id
   does. Never edit Claude Code's built-in model aliases, the `Agent` tool schema, or the host binary —
-  none of that is supported or necessary. This frontmatter contract and Model Gateway's routing for a
+  none of that is supported or necessary. This frontmatter contract and Code Team's routing for a
   concrete id are confirmed; an end-to-end custom-agent spawn through this path has not been verified
   here.
 - **Codex schema compatibility**: Codex rejects some Unicode property escapes such as `\p{Cc}` and `\P{Cf}`. After deferred hydration, the shim changes only a Codex-bound provider hint, never Claude Code's host schema or an Anthropic request. It admits a missing dialect or Draft 2020-12 and only `pattern` instances reached through `properties`, compatible `patternProperties` values, `additionalProperties`, `items`, `prefixItems`, `allOf`, `anyOf`, `dependentSchemas`, `propertyNames`, or `unevaluatedProperties`/`unevaluatedItems`. Each real property atom must stand alone in a negated character class without ranges, set syntax, captures, backreferences, or a negative regex context. The shim removes only that atom and preserves every other regex byte. `not`, conditionals, `oneOf`, `contains`, references, definitions, content schemas, affected pattern-property keys, unknown containers, and unsafe regexes refuse locally with HTTP 400 naming the tool, JSON Pointer, and reason code. Tell the user it was not forwarded or rerouted. Do not claim arbitrary schemas are preserved or try to bypass that diagnostic.
@@ -190,7 +220,7 @@ bring auth back, or you kill the session that was about to use it.
 ## Local gateway records
 
 Request-route logging is enabled by default. It writes metadata-only JSONL records to
-`~/.claude/model-gateway/logs/request-routes.jsonl`: timestamp, backend, model, request path, route and
+`~/.claude/code-team/logs/request-routes.jsonl`: timestamp, backend, model, request path, route and
 effort when present, safe session and agent correlation ids, and dispatch-marker length when present. It
 never writes request bodies, prompts, messages, tools, authentication, or arbitrary headers. Honor a user
 request to disable it by setting `CODEX_GATEWAY_REQUEST_LOG=0` before the shim starts, then restart the shim
@@ -198,7 +228,7 @@ through `setup` or `ensure`. The value is read when the shim process starts, so 
 change an already-running shim. `CODEX_GATEWAY_REQUEST_LOG_PATH` changes the file location.
 
 Usage observability also writes one high-water JSON file per valid session under
-`~/.claude/model-gateway/request-body/`. The filename is derived from the session id. Its contents are the
+`~/.claude/code-team/request-body/`. The filename is derived from the session id. Its contents are the
 largest forwarded request-body byte count observed for that session and an observation timestamp. It does
 not contain the request body. No retention period is promised for either local record.
 
@@ -228,7 +258,7 @@ or User-scope edits cannot be promised to win. Disabling stays available.
 - After the user directly confirms `remote-control enable --confirm`, the plugin creates a backup and writes its marked hosts block mapping `api.anthropic.com` to loopback: `127.0.0.1 api.anthropic.com` on Windows (`C:\Windows\System32\drivers\etc\hosts`, needs Administrator), macOS, and Linux (`/etc/hosts`, needs `sudo`). Do not edit the hosts file outside that procedure.
 - `ensure`/`setup`/`doctor` detect the entry (read-only) and, only after confirming the shim can
   actually bind loopback port 80, switch `ANTHROPIC_BASE_URL` to `http://api.anthropic.com` and
-  start a second listener on port 80 next to the usual `127.0.0.1:18764`. Exactly one line tells
+  start a second listener on port 80 next to the usual `127.0.0.1:18774`. Exactly one line tells
   the user to restart Claude Code when the mode changes either direction.
 - Removing the hosts entry, or port 80 becoming unavailable (no permission, or something else is
   using it), reverts to default mode automatically, again with one restart line.
@@ -255,7 +285,7 @@ window for `starting` before replacing anything, and refuses `running-foreign`.
 
 After confirming a same-install current-version healthy shim, startup keeps protected orphan cleanup
 under the install lifecycle lock. It can stop an older-version worker only with a saved birth record
-under `~/.claude/model-gateway/worker-births/`: exact PID, start time, command, install root and version,
+under `~/.claude/code-team/worker-births/`: exact PID, start time, command, install root and version,
 plus the original parent's PID and start identity. The original parent must be conclusively gone or
 replaced, and current ancestry must exclude the serving supervisor. A reparented PID alone is not
 ownership evidence. The healthy supervisor, its workers and live requests remain running; legacy or
@@ -277,8 +307,8 @@ does not support. A `FAIL` naming missing and extra ids means the shim is stale 
 matches: restart it through the normal `ensure` or `setup` path, then restart Claude Code sessions so the
 picker re-discovers the rows.
 
-Logs live in `~/.claude/model-gateway/logs/`. `guardian.log` has recovery output; `lifecycle.jsonl`
-has bounded process evidence that `doctor` summarizes. Ports: shim 18764, proxy 18765 (override with
+Logs live in `~/.claude/code-team/logs/`. `guardian.log` has recovery output; `lifecycle.jsonl`
+has bounded process evidence that `doctor` summarizes. Ports: shim 18774, proxy 18775 (override with
 `CODEX_GATEWAY_PORT` / `CODEX_GATEWAY_PROXY_PORT`, but the env block and running processes must
 agree).
 
@@ -286,7 +316,7 @@ agree).
 
 - **Client disconnects during upload**: the public shim relay and `/internal/rc-compatibility` discard aborted or failed body reads without stopping the supervisor or interrupting sibling streams. Aborted uploads are not forwarded or counted as worker failures, and the application does not write to a disconnected response. Other read failures return a non-retryable HTTP 400 only while the response is writable. Both readers enforce a 64 MiB body cap (HTTP 413). This protects incoming uploads only; do not infer that disconnecting after a completed upload cancels provider work or prevents charges.
 
-- **Every request fails after wiring**: a SessionStart hook can time out while it starts the shim. Claude Code cancels that hook, and a directly spawned supervisor can die with its process tree before it records an exit. Model Gateway launches the supervisor outside that tree and stops waiting before the hook budget, but if this is an older install or it still repeats, run
+- **Every request fails after wiring**: a SessionStart hook can time out while it starts the shim. Claude Code cancels that hook, and a directly spawned supervisor can die with its process tree before it records an exit. Code Team launches the supervisor outside that tree and stops waiting before the hook budget, but if this is an older install or it still repeats, run
   `doctor`, check logs. Worst case `env --remove` restores stock behavior instantly.
 - **Codex sessions drop while this plugin's suite runs**: this version scopes fixture cleanup to
   the test gateway home, so the suite never touches the installed gateway. If it happens after
@@ -307,7 +337,7 @@ agree).
   this state by up to five minutes.
 - **HTTP 413 `request_too_large` / "Prompt is too long"**: every context overflow the gateway answers
   keeps the real token counts first (Claude Code parses `(N tokens > M tokens)` to size compaction),
-  then appends `[model-gateway: phase …, refused by …; request … bytes, … tokens, limit … tokens; recovery: …]`
+  then appends `[code-team: phase …, refused by …; request … bytes, … tokens, limit … tokens; recovery: …]`
   and an `error.overflow` object with `phase`, `refused_by` (`gateway_sentry` or `upstream`),
   `request_bytes`, `tokens`, `tokens_from` (`upstream` or `previous_turn_usage`) and `limit_tokens`.
   The `codex_gateway.route` span carries the same values as `overflow_*` attributes, never prompt
@@ -345,7 +375,7 @@ agree).
 - **No "From gateway" rows in /model**: discovery is off (`CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY`
   missing), Claude Code < v2.1.129, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set (it
   disables discovery), or RC-compatibility is active. Claude Code only refetches discovery with an
-  API-key credential, so OAuth users rely on Model Gateway's cache write. Run `doctor` to check the
+  API-key credential, so OAuth users rely on Code Team's cache write. Run `doctor` to check the
   cache, then restart Claude Code after it updates; `/reload-plugins` does not reload picker rows.
 - **Thinking/reasoning**: the Codex backend doesn't return thinking blocks into Claude Code's
   UI; that's an upstream limitation, not a bug here.

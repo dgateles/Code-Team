@@ -1,11 +1,11 @@
 ---
 name: verify
-summary: Verify model-gateway through its CLI and HTTP shim surface.
+summary: Verify code-team through its CLI and HTTP shim surface.
 ---
 
-# Verify model-gateway
+# Verify code-team
 
-Use an isolated temporary home and random localhost ports. Start `bin/model-gateway.js serve-shim` against a tiny fake HTTP proxy that serves `/v1/models` and records forwarded message bodies.
+Use an isolated temporary home and random localhost ports. Start `bin/code-team.js serve-shim` against a tiny fake HTTP proxy that serves `/v1/models` and records forwarded message bodies.
 
 Drive these surfaces:
 
@@ -16,7 +16,7 @@ Drive these surfaces:
 5. RC-compatibility mode: set `CODEX_GATEWAY_HOSTS_FILE` to a temp hosts file and `CODEX_GATEWAY_COMPAT_PORT` to a free ephemeral port (never the real 80) before starting `serve-shim`. With the file containing `127.0.0.1 api.anthropic.com`, `GET /healthz` on both the main port and the compat port must report `compat.hostsDetected: true` and `compat.port80Bound: true`. With the entry absent, both must be false and the compat port must refuse connections. Pre-binding the compat port before spawning the shim proves the safe fallback: `hostsDetected: true`, `port80Bound: false`, a populated `reason`, and the main port still serving normally.
 6. DNS-recursion guard: require `lib/request-worker.js` directly and call `createHostsBypassResolver({ resolve4, resolve6 })` with injected fake resolvers to confirm it never falls back to a hosts-aware lookup and errors closed when both resolvers fail.
 
-Drive real `setup --preserve-wiring` with failing acquisition and assert the intentional-stop marker survives; maintenance setup must also avoid starting a stopped gateway after successful acquisition. Intentional stop is cleared once an explicit `start` or `setup` creates the supervisor process and records its PID; drive a spawn that yields no PID (nonexistent executable on the POSIX branch) and a launch-directory failure and assert the marker survives with no guardian record. Drive the installed stable gate without an install: a non-gateway endpoint exits 0 before CLI resolution or spawn, while a wired endpoint exits 2 with actionable guidance. Keep separate assertions for an absent plugin entry (recovery remains active), an explicit effective `enabledPlugins["model-gateway@eigenwise-toolshed"]: false` (exit 0, notice, no spawn or state changes), and `disableAllHooks`. Check project-local, project and user precedence, process endpoint precedence, and doctor's explicit-disable line.
+Drive real `setup --preserve-wiring` with failing acquisition and assert the intentional-stop marker survives; maintenance setup must also avoid starting a stopped gateway after successful acquisition. Intentional stop is cleared once an explicit `start` or `setup` creates the supervisor process and records its PID; drive a spawn that yields no PID (nonexistent executable on the POSIX branch) and a launch-directory failure and assert the marker survives with no guardian record. Drive the installed stable gate without an install: a non-gateway endpoint exits 0 before CLI resolution or spawn, while a wired endpoint exits 2 with actionable guidance. Keep separate assertions for an absent plugin entry (recovery remains active), an explicit effective `enabledPlugins["code-team@<marketplace>"]: false` (exit 0, notice, no spawn or state changes), and `disableAllHooks`. Check project-local, project and user precedence, process endpoint precedence, and doctor's explicit-disable line.
 
 Keep the real gateway and user settings untouched. Capture response bodies and resulting settings JSON inline.
 

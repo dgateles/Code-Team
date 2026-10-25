@@ -104,7 +104,7 @@ test('a first request over the window says there is nothing to compact and recor
   assert.equal(response.status, 413);
   const { error } = JSON.parse(response.body);
   assert.equal(error.type, 'request_too_large');
-  assert.ok(error.message.startsWith('Prompt is too long (250000 tokens > 242000 tokens) [model-gateway: phase first_turn'), error.message);
+  assert.ok(error.message.startsWith('Prompt is too long (250000 tokens > 242000 tokens) [code-team: phase first_turn'), error.message);
   assert.match(error.message, /recovery: nothing to compact, the request has no prior turn: shrink the first prompt/);
   assert.equal(error.message.match(/tokens\s*>\s*\d+ tokens/g).length, 1, 'the upstream counts are not repeated');
   assert.deepEqual(error.overflow, {
@@ -125,7 +125,7 @@ test('a first request without upstream counts keeps the placeholder but reports 
 
   const { error } = JSON.parse((await post(port, firstTurn, session)).body);
 
-  assert.match(error.message, /^Your input exceeds the context window of this model\. Please adjust your input and try again\. \(920001 tokens > 920000 tokens\) \[model-gateway: phase first_turn, refused by upstream; request \d+ bytes, tokens UNVERIFIED, limit 920000 tokens; recovery: nothing to compact/);
+  assert.match(error.message, /^Your input exceeds the context window of this model\. Please adjust your input and try again\. \(920001 tokens > 920000 tokens\) \[code-team: phase first_turn, refused by upstream; request \d+ bytes, tokens UNVERIFIED, limit 920000 tokens; recovery: nothing to compact/);
   assert.equal(error.overflow.tokens, null);
   assert.equal(error.overflow.tokens_from, null);
   const attributes = await routeAttributes(spans, 1);
@@ -142,7 +142,7 @@ test('a continuation refused by the sentry says compact and retry with the measu
 
   assert.equal(response.status, 413);
   const { error } = JSON.parse(response.body);
-  assert.ok(error.message.startsWith('Prompt is too long for the Codex context window; compact and retry. (150 tokens > 100 tokens) [model-gateway: phase continuation, refused by gateway_sentry;'), error.message);
+  assert.ok(error.message.startsWith('Prompt is too long for the Codex context window; compact and retry. (150 tokens > 100 tokens) [code-team: phase continuation, refused by gateway_sentry;'), error.message);
   assert.match(error.message, /150 tokens from previous_turn_usage, limit 100 tokens; recovery: compact the conversation and retry\]$/);
   assert.deepEqual(error.overflow, {
     phase: 'continuation', refused_by: 'gateway_sentry', request_bytes: Buffer.byteLength(continuation),
@@ -164,7 +164,7 @@ test('a compaction request over the window says compacting again cannot shrink i
 
   assert.equal(response.status, 413);
   const { error } = JSON.parse(response.body);
-  assert.match(error.message, /\(150 tokens > 272000 tokens\) \[model-gateway: phase compaction, refused by upstream;/);
+  assert.match(error.message, /\(150 tokens > 272000 tokens\) \[code-team: phase compaction, refused by upstream;/);
   assert.match(error.message, /recovery: the compaction request itself is over the limit/);
   assert.deepEqual(error.overflow, {
     phase: 'compaction', refused_by: 'upstream', request_bytes: forwardedBytes(compaction),
@@ -195,9 +195,9 @@ test('a legacy proxy context error carries the same diagnostics with the sentry 
   const response = await post(port, firstTurn, session);
 
   assert.equal(response.status, 413);
-  assert.equal(response.headers['x-model-gateway-upstream-status'], '400');
+  assert.equal(response.headers['x-code-team-upstream-status'], '400');
   const { error } = JSON.parse(response.body);
-  assert.ok(error.message.startsWith('Input exceeds the model context window; compact and retry. [model-gateway: phase first_turn,'), error.message);
+  assert.ok(error.message.startsWith('Input exceeds the model context window; compact and retry. [code-team: phase first_turn,'), error.message);
   assert.equal(error.overflow.tokens, null);
   assert.equal((await routeAttributes(spans, 1)).overflow_phase, 'first_turn');
 });

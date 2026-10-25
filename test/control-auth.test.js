@@ -40,7 +40,7 @@ test('control token is stable, remains local, and invalid token files fail close
 });
 
 function createCli(root, version) {
-  const file = path.join(root, version, 'bin', 'model-gateway.js');
+  const file = path.join(root, version, 'bin', 'code-team.js');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, '// fixture only\n');
   return file;
@@ -49,12 +49,12 @@ function createCli(root, version) {
 test('worker replacement stays in the same real cache root and never downgrades', (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-path-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  const cache = path.join(directory, 'cache', 'marketplace', 'model-gateway');
+  const cache = path.join(directory, 'cache', 'marketplace', 'code-team');
   const current = createCli(cache, '1.0.0');
   const next = createCli(cache, '1.0.1');
   const old = createCli(cache, '0.9.0');
   const foreign = createCli(path.join(directory, 'foreign'), '99.0.0');
-  const development = createCli(path.join(directory, 'checkout'), 'model-gateway');
+  const development = createCli(path.join(directory, 'checkout'), 'code-team');
   assert.equal(canReplaceInstalledCliPath(current, current), true);
   assert.equal(canReplaceInstalledCliPath(current, next), true);
   assert.equal(canReplaceInstalledCliPath(current, old), false);
@@ -62,8 +62,8 @@ test('worker replacement stays in the same real cache root and never downgrades'
   assert.equal(canReplaceInstalledCliPath(development, current), false);
   assert.equal(canReplaceInstalledCliPath(current, development), false);
   assert.equal(canReplaceInstalledCliPath(development, development), true);
-  assert.equal(canReplaceInstalledCliPath(current, '../99.0.0/bin/model-gateway.js'), false);
+  assert.equal(canReplaceInstalledCliPath(current, '../99.0.0/bin/code-team.js'), false);
   const linkedVersion = path.join(cache, '99.0.0');
   fs.symlinkSync(path.dirname(path.dirname(foreign)), linkedVersion, process.platform === 'win32' ? 'junction' : 'dir');
-  assert.equal(canReplaceInstalledCliPath(current, path.join(linkedVersion, 'bin', 'model-gateway.js')), false);
+  assert.equal(canReplaceInstalledCliPath(current, path.join(linkedVersion, 'bin', 'code-team.js')), false);
 });

@@ -48,7 +48,7 @@ test('omits empty assistant messages for tool-only turns', () => {
 });
 
 test('refreshes fixture auth without exposing it in return values', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-grok-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-grok-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const file = path.join(directory, 'auth.json');
   fs.writeFileSync(file, JSON.stringify({
@@ -73,7 +73,7 @@ test('refreshes fixture auth without exposing it in return values', async (t) =>
 });
 
 test('reads the CLI version and sends the required Grok headers', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-grok-version-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-grok-version-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const file = path.join(directory, 'version.json');
   fs.writeFileSync(file, JSON.stringify({ version: '0.2.112' }));
@@ -84,7 +84,7 @@ test('reads the CLI version and sends the required Grok headers', (t) => {
 });
 
 test('reads the current Grok catalog from the CLI cache', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-grok-catalog-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-grok-catalog-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const file = path.join(directory, 'models_cache.json');
   fs.writeFileSync(file, JSON.stringify({
@@ -263,7 +263,7 @@ test('the shim lists and routes Grok 1M picker aliases', async (t) => {
   const http = require('node:http');
   const { spawn } = require('node:child_process');
   const net = require('node:net');
-  const cli = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+  const cli = path.join(__dirname, '..', 'bin', 'code-team.js');
   const freePort = () => new Promise((resolve, reject) => {
     const server = net.createServer();
     server.once('error', reject);
@@ -278,7 +278,7 @@ test('the shim lists and routes Grok 1M picker aliases', async (t) => {
     req.on('error', reject);
     req.end(body);
   });
-  const authDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-grok-auth-'));
+  const authDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-grok-auth-'));
   fs.writeFileSync(path.join(authDirectory, 'auth.json'), JSON.stringify({
     'https://auth.x.ai::fixture-client': { key: 'fixture-token', refresh_token: 'fixture-refresh', expires_at: Date.now() + 3600000, oidc_client_id: 'fixture-client' },
   }));

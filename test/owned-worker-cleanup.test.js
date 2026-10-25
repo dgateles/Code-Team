@@ -9,7 +9,7 @@ const test = require('node:test');
 const supervision = require('../lib/process-supervision.js');
 
 function installedFixture(root, version) {
-  const install = path.join(root, 'plugins', 'cache', 'fixture', 'model-gateway', version);
+  const install = path.join(root, 'plugins', 'cache', 'fixture', 'code-team', version);
   fs.mkdirSync(path.join(install, '.claude-plugin'), { recursive: true });
   fs.writeFileSync(path.join(install, '.claude-plugin', 'plugin.json'), JSON.stringify({ version }));
   return install;
@@ -25,9 +25,9 @@ function cleanupFixture(t) {
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const older = installedFixture(home, '0.49.0');
   const current = installedFixture(home, '0.50.0');
-  const worker = { pid: 702, parentPid: 1, startedAt: 'worker-birth', command: `node "${path.join(older, 'bin', 'model-gateway.js')}" serve-worker` };
+  const worker = { pid: 702, parentPid: 1, startedAt: 'worker-birth', command: `node "${path.join(older, 'bin', 'code-team.js')}" serve-worker` };
   const parent = { pid: 700, startedAt: 'parent-birth', command: 'node fixture-parent' };
-  const supervisor = { pid: 701, parentPid: 1, startedAt: 'healthy-birth', command: `node "${path.join(current, 'bin', 'model-gateway.js')}" serve-shim` };
+  const supervisor = { pid: 701, parentPid: 1, startedAt: 'healthy-birth', command: `node "${path.join(current, 'bin', 'code-team.js')}" serve-shim` };
   const birth = { schemaVersion: 1, pid: worker.pid, startedAt: worker.startedAt, command: worker.command,
     installRoot: older, version: '0.49.0', parent };
   const directory = path.join(home, 'worker-births');
@@ -76,7 +76,7 @@ for (const [label, mutate] of [
   ['same version', (f) => { f.options.currentVersion = f.birth.version; }],
   ['newer worker version', (f) => { f.options.currentVersion = '0.48.0'; }],
   ['unreadable current version', (f) => { f.options.currentVersion = 'unknown'; }],
-  ['foreign install', (f) => { f.options.currentInstallRoot = path.join(f.directory, 'foreign', 'model-gateway'); }],
+  ['foreign install', (f) => { f.options.currentInstallRoot = path.join(f.directory, 'foreign', 'code-team'); }],
   ['wrong recorded install root', (f) => { f.birth.installRoot = f.options.currentInstallRoot; f.save(); }],
   ['changed installed version', (f) => { f.birth.version = '0.48.0'; f.save(); }],
   ['unknown worker inspection', (f) => f.live.set(702, undefined)],

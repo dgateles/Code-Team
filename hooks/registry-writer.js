@@ -29,7 +29,7 @@ function compareVersions(left, right) {
 
 function modelGatewayInstalls(registry) {
   return Object.entries(registry.plugins || {})
-    .filter(([pluginId]) => pluginId.startsWith('model-gateway@'))
+    .filter(([pluginId]) => pluginId.startsWith('code-team@'))
     .flatMap(([, installs]) => installs);
 }
 
@@ -39,7 +39,7 @@ function currentModelGatewayCli() {
     const registry = JSON.parse(fs.readFileSync(path.join(claudeHome, 'plugins', 'installed_plugins.json'), 'utf8'));
     const candidates = modelGatewayInstalls(registry)
       .filter((install) => install?.installPath)
-      .map((install) => ({ ...install, script: path.join(install.installPath, 'bin', 'model-gateway.js') }))
+      .map((install) => ({ ...install, script: path.join(install.installPath, 'bin', 'code-team.js') }))
       .filter((install) => fs.existsSync(install.script));
     candidates.sort((left, right) => compareVersions(right.version, left.version)
       || String(right.lastUpdated || '').localeCompare(String(left.lastUpdated || '')));
@@ -70,12 +70,12 @@ if (gate) {
 }
 const script = currentModelGatewayCli();
 if (!script) {
-  console.error('model-gateway: no installed Model Gateway CLI was found in Claude Code\\'s plugin registry. Reinstall Model Gateway, then run the stable launcher with start or doctor. Unwire with env --remove before removing the plugin. Resubmit your prompt after recovery.');
+  console.error('code-team: no installed Code Team CLI was found in Claude Code\\'s plugin registry. Reinstall Code Team, then run the stable launcher with start or doctor. Unwire with env --remove before removing the plugin. Resubmit your prompt after recovery.');
   process.exit(gate ? 2 : 1);
 }
 const result = spawnSync(process.execPath, [script, ...process.argv.slice(2)], { stdio: gate ? ['pipe', 'inherit', 'inherit'] : 'inherit', input, windowsHide: true, ...(gate ? { timeout: 25000, killSignal: 'SIGKILL' } : {}) });
 if (result.error) {
-  console.error('model-gateway: recovery failed or exceeded its 25s deadline. Run this stable launcher with start, recover, doctor, or env --remove, then resubmit your prompt.');
+  console.error('code-team: recovery failed or exceeded its 25s deadline. Run this stable launcher with start, recover, doctor, or env --remove, then resubmit your prompt.');
   process.exit(gate ? 2 : 1);
 }
 process.exit(result.status == null ? 1 : result.status);
@@ -87,7 +87,7 @@ const UPDATE_LAUNCHER = `#!/usr/bin/env node
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const result = spawnSync(process.execPath, [path.join(__dirname, 'model-gateway.js'), 'setup', '--preserve-wiring'], { stdio: 'inherit', windowsHide: true });
+const result = spawnSync(process.execPath, [path.join(__dirname, 'code-team.js'), 'setup', '--preserve-wiring'], { stdio: 'inherit', windowsHide: true });
 if (result.error) throw result.error;
 process.exit(result.status == null ? 1 : result.status);
 `;
@@ -101,15 +101,15 @@ function pluginVersion(root) {
 }
 
 function registryPath(home = os.homedir()) {
-  return path.join(home, '.claude', 'toolshed', 'registry', 'model-gateway.json');
+  return path.join(home, '.claude', 'toolshed', 'registry', 'code-team.json');
 }
 
 function updateLauncherPath(home = os.homedir()) {
-  return path.join(home, '.claude', 'model-gateway', 'update.js');
+  return path.join(home, '.claude', 'code-team', 'update.js');
 }
 
 function commandLauncherPath(home = os.homedir()) {
-  return path.join(home, '.claude', 'model-gateway', 'model-gateway.js');
+  return path.join(home, '.claude', 'code-team', 'code-team.js');
 }
 
 function writeCommandLauncher({ home = os.homedir() } = {}) {
@@ -148,12 +148,12 @@ function writeAtomically(file, value) {
 function breadcrumb(root, version, home) {
   return {
     schemaVersion: SCHEMA_VERSION,
-    name: 'model-gateway',
+    name: 'code-team',
     version,
     root,
     capabilities: ['model-catalog'],
     catalog: {
-      path: path.join(home, '.claude', 'model-gateway', 'catalog.json'),
+      path: path.join(home, '.claude', 'code-team', 'catalog.json'),
       schemaVersion: CATALOG_SCHEMA_VERSION,
     },
   };

@@ -10,7 +10,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { spawnGatewayProcess } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const { DispatchSessionRouteCache } = require('../lib/request-worker.js');
 
 function freePort() {
@@ -112,7 +112,7 @@ test('dispatch session route cache evicts the least recently used session', () =
 test('dispatch model reuses a session route after compaction and logs cache hits', async (t) => {
   const shimPort = await freePort();
   const proxyPort = await freePort();
-  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-session-route-'));
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-session-route-'));
   const routeLog = path.join(logDir, 'routes.jsonl');
   const forwarded = [];
   const proxy = http.createServer((req, res) => {
@@ -203,7 +203,7 @@ test('dispatch model reuses a session route after compaction and logs cache hits
 test('dispatch route survives a shim restart before a compacted continuation', async (t) => {
   const shimPort = await freePort();
   const proxyPort = await freePort();
-  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-session-route-restart-'));
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-session-route-restart-'));
   const routeLog = path.join(logDir, 'routes.jsonl');
   const routeCache = path.join(logDir, 'dispatch-routes.json');
   const forwarded = [];
@@ -276,7 +276,7 @@ test('dispatch route survives a shim restart before a compacted continuation', a
 test('native Agent route survives repeated tools and the compaction identity transition', async (t) => {
   const shimPort = await freePort();
   const proxyPort = await freePort();
-  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-agent-route-'));
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-agent-route-'));
   const routeLog = path.join(logDir, 'routes.jsonl');
   const forwarded = [];
   const proxy = http.createServer((req, res) => {
@@ -401,7 +401,7 @@ test('native Agent route survives repeated tools and the compaction identity tra
 test('route log identifies parent-only Agent dispatch cache misses', async (t) => {
   const shimPort = await freePort();
   const proxyPort = await freePort();
-  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-parent-agent-'));
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-parent-agent-'));
   const routeLog = path.join(logDir, 'routes.jsonl');
   const forwarded = [];
   const proxy = http.createServer((req, res) => {
@@ -469,7 +469,7 @@ test('route log identifies parent-only Agent dispatch cache misses', async (t) =
 test('markerless child agents inherit only their trusted parent route', async (t) => {
   const shimPort = await freePort();
   const proxyPort = await freePort();
-  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-child-route-'));
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-child-route-'));
   const routeLog = path.join(logDir, 'routes.jsonl');
   const routeCache = path.join(logDir, 'dispatch-routes.json');
   const forwarded = [];

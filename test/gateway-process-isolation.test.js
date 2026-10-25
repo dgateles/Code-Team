@@ -16,7 +16,7 @@ const { commandIncludesFile, commandResultAsync, createProxyRecovery, gatewayIns
 const { PLUGIN_VERSION, startAll } = require('../lib/commands.js');
 const { canReplaceInstalledCliPath } = require('../lib/runtime.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const BODY_SESSION_ID = 'gateway-fixture-body-sentinel';
 
 function listen(server) {
@@ -196,7 +196,7 @@ async function waitForFileToUnlock(filePath, timeout = 5000) {
 }
 
 function installNodeProxy(home) {
-  const proxyBinary = path.join(home, '.claude', 'model-gateway', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
+  const proxyBinary = path.join(home, '.claude', 'code-team', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
   fs.mkdirSync(path.dirname(proxyBinary), { recursive: true });
   fs.copyFileSync(process.execPath, proxyBinary);
   if (process.platform !== 'win32') fs.chmodSync(proxyBinary, 0o755);
@@ -215,7 +215,7 @@ function runGatewayCli(cliPath, command, environment, { arguments: commandArgume
 }
 
 function installCachedGatewayCliVersions(home) {
-  const cacheRoot = path.join(home, '.claude', 'plugins', 'cache', 'eigenwise-toolshed', 'model-gateway');
+  const cacheRoot = path.join(home, '.claude', 'plugins', 'cache', 'eigenwise-toolshed', 'code-team');
   const cliPaths = {};
   for (const version of ['0.49.0', '0.50.0']) {
     const pluginRoot = path.join(cacheRoot, version);
@@ -224,7 +224,7 @@ function installCachedGatewayCliVersions(home) {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     manifest.version = version;
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
-    cliPaths[version] = path.join(pluginRoot, 'bin', 'model-gateway.js');
+    cliPaths[version] = path.join(pluginRoot, 'bin', 'code-team.js');
   }
   return { olderCli: cliPaths['0.49.0'], newerCli: cliPaths['0.50.0'] };
 }
@@ -239,7 +239,7 @@ function pause(milliseconds) {
 
 function outerSocketPath(home) {
   return process.platform === 'win32'
-    ? `\\\\.\\pipe\\model-gateway-outer-${process.pid}-${Date.now()}`
+    ? `\\\\.\\pipe\\code-team-outer-${process.pid}-${Date.now()}`
     : path.join(home, 'outer-gateway.sock');
 }
 
@@ -263,8 +263,8 @@ function setOuterGatewayEnvironment(t, home, endpointPort) {
   fs.mkdirSync(bodyDirectory, { recursive: true });
   fs.mkdirSync(codexHome, { recursive: true });
   const sentinels = [
-    [path.join(home, '.claude', 'model-gateway', 'shim.pid'), 'outer-pid'],
-    [path.join(home, '.claude', 'model-gateway', 'logs', 'shim.log'), 'outer-log'],
+    [path.join(home, '.claude', 'code-team', 'shim.pid'), 'outer-pid'],
+    [path.join(home, '.claude', 'code-team', 'logs', 'shim.log'), 'outer-log'],
     [path.join(home, '.claude', 'cache', 'gateway-models.json'), 'outer-cache'],
     [path.join(bodyDirectory, 'outer-body.json'), 'outer-body'],
     [path.join(codexHome, 'config.toml'), 'outer-codex-home'],
@@ -312,7 +312,7 @@ function assertNoBodyRecord(bodyDirectory) {
 }
 
 function testHomes(directory) {
-  return new Set(fs.readdirSync(directory).filter((entry) => entry.startsWith('model-gateway-test-')));
+  return new Set(fs.readdirSync(directory).filter((entry) => entry.startsWith('code-team-test-')));
 }
 
 function assertSameEntries(actual, expected) {
@@ -365,10 +365,10 @@ test('probe timeout defaults to the measured Windows lookup budget, keeps 2s els
 });
 
 test('startup ownership resolves bounded same-install, unowned, foreign, and unknown owners', async () => {
-  const gatewayScript = path.join(__dirname, '..', 'bin', 'model-gateway.js');
-  const foreignGatewayScript = path.join(os.tmpdir(), 'foreign-model-gateway', 'bin', 'model-gateway.js');
+  const gatewayScript = path.join(__dirname, '..', 'bin', 'code-team.js');
+  const foreignGatewayScript = path.join(os.tmpdir(), 'foreign-code-team', 'bin', 'code-team.js');
   const sameInstallProcess = { command: `${process.execPath} "${gatewayScript}" serve-shim` };
-  const resolve = (owners, processes, listeners = [true]) => resolvePortOwner(18764, {
+  const resolve = (owners, processes, listeners = [true]) => resolvePortOwner(18774, {
     owner: async () => owners.shift(),
     inspectProcess: async () => processes.shift(),
     listening: async () => listeners.shift() ?? false,
@@ -385,7 +385,7 @@ test('startup ownership resolves bounded same-install, unowned, foreign, and unk
   assert.deepEqual(await resolve([null, null], [], [true, true]), { state: 'unknown', pid: null, reason: 'unidentified' });
   assert.deepEqual(await resolve([701, 701], [{ command: 'unrecognized command' }, { command: 'unrecognized command' }]), { state: 'unknown', pid: 701, reason: 'unidentified' });
   assert.deepEqual(await resolve([701], [{ command: `${process.execPath} "${foreignGatewayScript}" serve-shim` }]), {
-    state: 'foreign-install', pid: 701, installRoot: path.join(os.tmpdir(), 'foreign-model-gateway'),
+    state: 'foreign-install', pid: 701, installRoot: path.join(os.tmpdir(), 'foreign-code-team'),
   });
 });
 
@@ -405,7 +405,7 @@ test('a matching start-time record identifies a command-hidden process without r
   }), pid);
   assert.deepEqual(retired, [], 'a matching start-time record stays available when Windows hides the command line');
 
-  const resolved = await resolvePortOwner(18764, {
+  const resolved = await resolvePortOwner(18774, {
     owner: async () => pid,
     inspectProcess: async () => hiddenProcess,
     recordedPids: () => [pid],
@@ -415,7 +415,7 @@ test('a matching start-time record identifies a command-hidden process without r
     state: 'same-install', identity: 'pid-record', installRoot: gatewayInstallRoot(), pid,
   });
 
-  const foreignProcess = { command: `${process.execPath} "${path.join(os.tmpdir(), 'foreign-model-gateway', 'bin', 'model-gateway.js')}" serve-shim`, pid, startedAt };
+  const foreignProcess = { command: `${process.execPath} "${path.join(os.tmpdir(), 'foreign-code-team', 'bin', 'code-team.js')}" serve-shim`, pid, startedAt };
   assert.equal(processIsOwnedByThisInstall(pid, { record, inspectProcess: () => foreignProcess }), false);
 });
 
@@ -435,33 +435,33 @@ test('a failed termination is reported after a matching start-time ownership che
 
 test('startup ownership names a probe budget exhaustion separately from an unrecognized owner', async () => {
   let elapsed = 0;
-  const exhaustedOwner = await resolvePortOwner(18764, {
+  const exhaustedOwner = await resolvePortOwner(18774, {
     owner: async () => { elapsed = 20; return 701; },
     inspectProcess: async () => ({ command: 'unrecognized command' }),
     timeout: 20,
     now: () => elapsed,
   });
-  const unrecognizedOwner = await resolvePortOwner(18764, {
+  const unrecognizedOwner = await resolvePortOwner(18774, {
     owner: async () => 701,
     inspectProcess: async () => ({ command: 'unrecognized command' }),
     timeout: 20,
     now: () => 0,
   });
 
-  const exhaustionReason = unknownPortOwnerReason(exhaustedOwner, 18764);
-  const unrecognizedReason = unknownPortOwnerReason(unrecognizedOwner, 18764);
+  const exhaustionReason = unknownPortOwnerReason(exhaustedOwner, 18774);
+  const unrecognizedReason = unknownPortOwnerReason(unrecognizedOwner, 18774);
   assert.equal(exhaustedOwner.reason, 'timeout');
   assert.equal(unrecognizedOwner.reason, 'unidentified');
   assert.match(exhaustionReason, /20ms budget/);
   assert.match(exhaustionReason, /CODEX_GATEWAY_PROBE_TIMEOUT_MS/);
   assert.notEqual(exhaustionReason, unrecognizedReason);
-  assert.match(unrecognizedReason, /could not be identified as this model-gateway install/);
+  assert.match(unrecognizedReason, /could not be identified as this code-team install/);
   assert.doesNotMatch(unrecognizedReason, /CODEX_GATEWAY_PROBE_TIMEOUT_MS/);
 });
 
 test('startup ownership keeps unknown and expired absence evidence unknown', async () => {
   let listeningCalls = 0;
-  const unknownInspection = await resolvePortOwner(18764, {
+  const unknownInspection = await resolvePortOwner(18774, {
     owner: async () => 701,
     inspectProcess: async () => undefined,
     listening: async () => { listeningCalls += 1; return false; },
@@ -474,7 +474,7 @@ test('startup ownership keeps unknown and expired absence evidence unknown', asy
   let currentTime = 0;
   let ownerCalls = 0;
   listeningCalls = 0;
-  const expiredBeforeFallback = await resolvePortOwner(18764, {
+  const expiredBeforeFallback = await resolvePortOwner(18774, {
     owner: async () => { ownerCalls += 1; currentTime = 20; return null; },
     inspectProcess: async () => null,
     listening: async () => { listeningCalls += 1; return false; },
@@ -488,7 +488,7 @@ test('startup ownership keeps unknown and expired absence evidence unknown', asy
   currentTime = 0;
   ownerCalls = 0;
   listeningCalls = 0;
-  const expiredBeforeRetry = await resolvePortOwner(18764, {
+  const expiredBeforeRetry = await resolvePortOwner(18774, {
     owner: async () => { ownerCalls += 1; return null; },
     inspectProcess: async () => null,
     listening: async () => { listeningCalls += 1; currentTime = 20; return false; },
@@ -499,7 +499,7 @@ test('startup ownership keeps unknown and expired absence evidence unknown', asy
   assert.equal(ownerCalls, 1);
   assert.equal(listeningCalls, 1);
 
-  const confirmedAbsent = await resolvePortOwner(18764, {
+  const confirmedAbsent = await resolvePortOwner(18774, {
     owner: async () => null,
     inspectProcess: async () => null,
     listening: async () => false,
@@ -508,7 +508,7 @@ test('startup ownership keeps unknown and expired absence evidence unknown', asy
   });
   assert.deepEqual(confirmedAbsent, { state: 'unowned', pid: null });
 
-  const goneProcess = await resolvePortOwner(18764, {
+  const goneProcess = await resolvePortOwner(18774, {
     owner: async () => 701,
     inspectProcess: async () => null,
     listening: async () => false,
@@ -534,13 +534,13 @@ test('startup ownership leaves unknown and confirmed foreign listeners untouched
 
   const unknown = await run({ state: 'unknown', pid: 701 });
   assert.equal(unknown.ok, false);
-  assert.match(unknown.reason, /could not confirm the owner of :18764 \(last observed PID 701\); .*left the listener untouched/);
+  assert.match(unknown.reason, /could not confirm the owner of :18774 \(last observed PID 701\); .*left the listener untouched/);
   assert.deepEqual(calls, []);
   assert.deepEqual(lifecycle, [{ event: 'start-owner-unknown', details: { component: 'start', pid: process.pid, outcome: 'owner-unknown' } }]);
 
-  const foreign = await run({ state: 'foreign-install', pid: 702, installRoot: '/foreign/model-gateway' });
+  const foreign = await run({ state: 'foreign-install', pid: 702, installRoot: '/foreign/code-team' });
   assert.equal(foreign.ok, false);
-  assert.match(foreign.reason, /PID 702 owns :18764 from a different install root/);
+  assert.match(foreign.reason, /PID 702 owns :18774 from a different install root/);
   assert.deepEqual(calls, []);
 });
 
@@ -562,14 +562,14 @@ test('startup leaves a healthy command-hidden listener running', async () => {
 });
 
 test('cache ownership resolves physical install roots before accepting sibling versions', (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-cache-identity-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-cache-identity-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const cacheRoot = path.join(home, '.claude', 'plugins', 'cache');
-  const olderSibling = path.join(cacheRoot, 'eigenwise-toolshed', 'model-gateway', '0.48.0');
-  const currentSibling = path.join(cacheRoot, 'eigenwise-toolshed', 'model-gateway', '0.50.0');
-  const foreignLinkedSibling = path.join(cacheRoot, 'eigenwise-toolshed', 'model-gateway', '0.49.0');
-  const foreignRoot = path.join(home, 'dev', 'foreign-model-gateway');
-  const foreignMarketplace = path.join(cacheRoot, 'other-marketplace', 'model-gateway', '0.49.0');
+  const olderSibling = path.join(cacheRoot, 'eigenwise-toolshed', 'code-team', '0.48.0');
+  const currentSibling = path.join(cacheRoot, 'eigenwise-toolshed', 'code-team', '0.50.0');
+  const foreignLinkedSibling = path.join(cacheRoot, 'eigenwise-toolshed', 'code-team', '0.49.0');
+  const foreignRoot = path.join(home, 'dev', 'foreign-code-team');
+  const foreignMarketplace = path.join(cacheRoot, 'other-marketplace', 'code-team', '0.49.0');
 
   fs.mkdirSync(olderSibling, { recursive: true });
   fs.mkdirSync(currentSibling, { recursive: true });
@@ -585,7 +585,7 @@ test('cache ownership resolves physical install roots before accepting sibling v
 });
 
 test('proxy command identity resolves the physical executable path', (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-proxy-command-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-proxy-command-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const proxyBinary = path.join(home, 'bin', 'claude-code-proxy');
   fs.mkdirSync(path.dirname(proxyBinary), { recursive: true });
@@ -596,7 +596,7 @@ test('proxy command identity resolves the physical executable path', (t) => {
 });
 
 test('gateway fixture processes isolate outer body, socket, and Codex state', async (t) => {
-  const outerHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-outer-user-'));
+  const outerHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-outer-user-'));
   t.after(() => fs.rmSync(outerHome, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
   let defaultContacts = 0;
   const defaultEndpoint = http.createServer((request, response) => {
@@ -648,7 +648,7 @@ test('gateway fixture processes isolate outer body, socket, and Codex state', as
 });
 
 test('sync gateway fixture cleanup removes helper-owned homes and preserves supplied homes', (t) => {
-  const outerHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-outer-user-'));
+  const outerHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-outer-user-'));
   t.after(() => fs.rmSync(outerHome, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
   const outer = setOuterGatewayEnvironment(t, outerHome, 9);
   const before = testHomes(outer.temporaryDirectory);
@@ -846,7 +846,7 @@ test('owned fixture removal revalidates the root before retrying', async (t) => 
 });
 
 test('owned fixture removal refuses a caller-supplied unowned root', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-unowned-cleanup-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-unowned-cleanup-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   await assert.rejects(removeOwnedGatewayTestHome(home, {
     remove: async () => assert.fail('unowned root cannot be removed'),
@@ -889,7 +889,7 @@ async function fakeDirectWorker(t, mode) {
   const context = { after: (hook) => hooks.push(hook), diagnostic: () => {} };
   const environment = gatewayTestEnvironment(context, { FIXTURE_DRAIN_MODE: mode });
   const home = environment.HOME;
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   const script = path.join(home, 'fake-worker.cjs');
   let child;
   t.after(async () => {
@@ -902,14 +902,14 @@ async function fakeDirectWorker(t, mode) {
     const fs = require('node:fs');
     const http = require('node:http');
     const path = require('node:path');
-    const state = path.join(process.env.HOME, '.claude', 'model-gateway');
+    const state = path.join(process.env.HOME, '.claude', 'code-team');
     fs.mkdirSync(state, { recursive: true });
     const token = 'a'.repeat(64);
     fs.writeFileSync(path.join(state, 'control-token'), token);
     const mode = process.env.FIXTURE_DRAIN_MODE;
     const server = http.createServer((req, res) => {
       if (req.url === '/healthz') return res.end('{"ok":true}');
-      const authMatched = req.headers['x-model-gateway-control-token'] === token;
+      const authMatched = req.headers['x-code-team-control-token'] === token;
       fs.appendFileSync(path.join(state, 'control-requests.jsonl'), JSON.stringify({ method: req.method, path: req.url, host: req.headers.host, connection: req.headers.connection, authMatched }) + '\\n');
       req.resume();
       if (mode === 'stall') return;
@@ -1180,9 +1180,9 @@ test('gateway fixture home teardown stops a supervisor even after later commands
 });
 
 test('isolated ensure preserves a foreign serve-shim process and cleans its own supervisor', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-ensure-isolation-'));
-  const foreignScript = path.join(home, 'foreign-install', 'model-gateway', 'bin', 'model-gateway.js');
-  const proxyBinary = path.join(home, '.claude', 'model-gateway', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-ensure-isolation-'));
+  const foreignScript = path.join(home, 'foreign-install', 'code-team', 'bin', 'code-team.js');
+  const proxyBinary = path.join(home, '.claude', 'code-team', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
   fs.mkdirSync(path.dirname(foreignScript), { recursive: true });
   fs.mkdirSync(path.dirname(proxyBinary), { recursive: true });
   fs.writeFileSync(foreignScript, "process.stdout.write('ready\\n'); setInterval(() => {}, 1000);\n");
@@ -1206,7 +1206,7 @@ test('isolated ensure preserves a foreign serve-shim process and cleans its own 
     },
   });
 
-  const guardianPid = Number(fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'guardian.pid'), 'utf8'));
+  const guardianPid = Number(fs.readFileSync(path.join(home, '.claude', 'code-team', 'guardian.pid'), 'utf8'));
   assert.equal(result.status, 0, result.stderr);
   assert.equal(processIsRunning(foreign.pid), true, 'foreign serve-shim process survived isolated ensure');
   assert.equal(processIsRunning(guardianPid), false, 'sync fixture cleanup stopped its supervisor');
@@ -1339,15 +1339,15 @@ test('parallel healthy ensures reap a real owned stale-version orphan while the 
   });
   const upstreamPort = await listen(upstream);
   t.after(() => { upstream.closeAllConnections(); upstream.close(); });
-  assert.ok(![18764, 18765, 18766, 29113].includes(upstreamPort));
+  assert.ok(![18774, 18775, 18766, 29113].includes(upstreamPort));
   const environment = isolatedStreamEnvironment(t, upstreamPort);
   installNodeProxy(environment.HOME);
   const { olderCli, newerCli } = installCachedGatewayCliVersions(environment.HOME);
   stale = await startStaleWorkerFixture(olderCli, environment);
-  assert.ok(![18764, 18765, 18766, 29113].includes(stale.port));
+  assert.ok(![18774, 18775, 18766, 29113].includes(stale.port));
   assert.equal(processIsRunning(stale.parentPid), false, 'the recorded birth parent has really exited');
   const supervisor = await startGateway(t, 'serve-shim', environment, { cliPath: newerCli });
-  const state = path.join(environment.HOME, '.claude', 'model-gateway');
+  const state = path.join(environment.HOME, '.claude', 'code-team');
   const workerPid = await waitForPidRecord(path.join(state, 'shim.pid'));
   await waitForPidRecordDetails(path.join(state, 'shim.pid.json'), workerPid);
   const stream = openHeldGatewayStream(supervisor.port);
@@ -1386,7 +1386,7 @@ test('parallel healthy ensures reap a real owned stale-version orphan while the 
 });
 
 test('sibling ensure retires dead records without deleting replacement worker and proxy records', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-sibling-record-replacement-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-sibling-record-replacement-'));
   const { olderCli, newerCli } = installCachedGatewayCliVersions(home);
   const shimReservation = net.createServer();
   const shimPort = await listen(shimReservation);
@@ -1394,7 +1394,7 @@ test('sibling ensure retires dead records without deleting replacement worker an
   const proxyReservation = net.createServer();
   const proxyPort = await listen(proxyReservation);
   await new Promise((resolve) => proxyReservation.close(resolve));
-  const proxyBinary = path.join(home, '.claude', 'model-gateway', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
+  const proxyBinary = path.join(home, '.claude', 'code-team', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
   installNodeProxy(home);
   fs.writeFileSync(path.join(home, 'serve'), "require('node:http').createServer((request, response) => request.url === '/v1/models' ? response.end(JSON.stringify({ data: [] })) : response.end('{}')).listen(process.env.PORT, '127.0.0.1'); setInterval(() => {}, 1000);\n");
   const environment = gatewayTestEnvironment(null, { HOME: home, USERPROFILE: home, ANTHROPIC_BASE_URL: `http://127.0.0.1:${shimPort}` }, {
@@ -1420,7 +1420,7 @@ test('sibling ensure retires dead records without deleting replacement worker an
   });
   await waitForReady(olderShim);
 
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   await waitForPidRecord(path.join(state, 'shim.pid'));
   await waitForPidRecord(path.join(state, 'proxy.pid'));
   const retiredGuardianPid = 987654321;
@@ -1456,20 +1456,20 @@ test('sibling ensure retires dead records without deleting replacement worker an
   const doctor = await runGatewayCli(newerCli, 'doctor', environment, { cwd: home });
   const updaterOutput = `${ensured.stderr}${doctor.stderr}`;
   const legacyUpdaterLogLines = [
-    `model-gateway: stale pid file guardian: PID ${retiredGuardianPid} is now not a gateway process`,
-    `model-gateway: stale pid file shim: PID ${retiredWorkerPid} is now not a gateway process`,
-    `model-gateway: stale pid file proxy: PID ${retiredProxyPid} is now not a gateway process`,
-    `model-gateway: stale pid file shim: PID ${replacementWorkerPid} is now ${process.execPath} ${newerCli} serve-worker`,
-    `model-gateway: stale pid file proxy: PID ${replacementProxyPid} is now ${proxyBinary} serve --no-monitor`,
+    `code-team: stale pid file guardian: PID ${retiredGuardianPid} is now not a gateway process`,
+    `code-team: stale pid file shim: PID ${retiredWorkerPid} is now not a gateway process`,
+    `code-team: stale pid file proxy: PID ${retiredProxyPid} is now not a gateway process`,
+    `code-team: stale pid file shim: PID ${replacementWorkerPid} is now ${process.execPath} ${newerCli} serve-worker`,
+    `code-team: stale pid file proxy: PID ${replacementProxyPid} is now ${proxyBinary} serve --no-monitor`,
   ];
   const expectedPidRecordLines = [
-    `model-gateway: pid record guardian retired because PID ${retiredGuardianPid} is gone`,
-    `model-gateway: pid record shim retired because PID ${retiredWorkerPid} is gone`,
-    `model-gateway: pid record proxy retired because PID ${retiredProxyPid} is gone`,
-    `model-gateway: pid record shim rewritten for replaced PID ${replacementWorkerPid}: ${process.execPath} ${newerCli} serve-worker`,
+    `code-team: pid record guardian retired because PID ${retiredGuardianPid} is gone`,
+    `code-team: pid record shim retired because PID ${retiredWorkerPid} is gone`,
+    `code-team: pid record proxy retired because PID ${retiredProxyPid} is gone`,
+    `code-team: pid record shim rewritten for replaced PID ${replacementWorkerPid}: ${process.execPath} ${newerCli} serve-worker`,
   ];
-  const pidRecordLines = updaterOutput.split(/\r?\n/).filter((line) => line.startsWith('model-gateway: pid record'));
-  const stalePidFileLines = updaterOutput.split(/\r?\n/).filter((line) => line.startsWith('model-gateway: stale pid file'));
+  const pidRecordLines = updaterOutput.split(/\r?\n/).filter((line) => line.startsWith('code-team: pid record'));
+  const stalePidFileLines = updaterOutput.split(/\r?\n/).filter((line) => line.startsWith('code-team: stale pid file'));
 
   assert.deepEqual(pidRecordLines, expectedPidRecordLines);
   assert.deepEqual(stalePidFileLines, [], `live replacement records must not produce:\n${legacyUpdaterLogLines.slice(3).join('\n')}`);
@@ -1523,7 +1523,7 @@ async function versionChangeRestartScenario(t, startupDelayMs = 0) {
     CODEX_GATEWAY_PROXY_RECOVERY_INTERVAL_MS: '1000',
   });
   const home = environment.HOME;
-  const proxyBinary = path.join(home, '.claude', 'model-gateway', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
+  const proxyBinary = path.join(home, '.claude', 'code-team', 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
   installNodeProxy(home);
   fs.writeFileSync(path.join(home, 'serve'), "require('node:http').createServer((request, response) => request.url === '/v1/models' ? response.end(JSON.stringify({ data: [] })) : response.end('{}')).listen(process.env.PORT, '127.0.0.1'); setInterval(() => {}, 1000);\n");
   const supervisorArguments = [...delayedProxyStartupArguments(home, startupDelayMs), CLI, 'serve-shim'];
@@ -1534,7 +1534,7 @@ async function versionChangeRestartScenario(t, startupDelayMs = 0) {
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   supervisor.fixtureShutdown = true;
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   const originalProxyPid = await waitForFixtureProxy(supervisor, { home, port: proxyPort, startedAt });
   const proxyVersion = (spawnSync(proxyBinary, ['--version'], { encoding: 'utf8', windowsHide: true }).stdout.match(/\d+\.\d+\.\d+/) || [])[0];
   assert.ok(proxyVersion, 'fixture proxy reports a semver version');
@@ -1560,11 +1560,11 @@ test('version-change restart preserves its assertions after delayed initial prox
 });
 
 test('older cache version cannot replace a newer sibling shim', (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-version-order-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-version-order-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
-  const cacheRoot = path.join(home, 'cache', 'eigenwise-toolshed', 'model-gateway');
-  const olderCli = path.join(cacheRoot, '0.49.0', 'bin', 'model-gateway.js');
-  const newerCli = path.join(cacheRoot, '0.50.0', 'bin', 'model-gateway.js');
+  const cacheRoot = path.join(home, 'cache', 'eigenwise-toolshed', 'code-team');
+  const olderCli = path.join(cacheRoot, '0.49.0', 'bin', 'code-team.js');
+  const newerCli = path.join(cacheRoot, '0.50.0', 'bin', 'code-team.js');
   for (const cli of [olderCli, newerCli]) {
     fs.mkdirSync(path.dirname(cli), { recursive: true });
     fs.writeFileSync(cli, '// Version-order fixture; never executed.\n');
@@ -1575,8 +1575,8 @@ test('older cache version cannot replace a newer sibling shim', (t) => {
 });
 
 test('foreign configured-port supervisor is preserved and reported', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-foreign-port-'));
-  const foreignScript = path.join(home, 'foreign-install', 'model-gateway', 'bin', 'model-gateway.js');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-foreign-port-'));
+  const foreignScript = path.join(home, 'foreign-install', 'code-team', 'bin', 'code-team.js');
   const reservation = net.createServer();
   const port = await listen(reservation);
   await new Promise((resolve) => reservation.close(resolve));
@@ -1612,11 +1612,11 @@ test('foreign configured-port supervisor is preserved and reported', async (t) =
 });
 
 test('cache-junction gateway process is preserved as a foreign port owner', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-cache-junction-port-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-cache-junction-port-'));
   const { olderCli, newerCli } = installCachedGatewayCliVersions(home);
-  const foreignRoot = path.join(home, 'dev', 'foreign-model-gateway');
+  const foreignRoot = path.join(home, 'dev', 'foreign-code-team');
   const junctionRoot = path.dirname(path.dirname(olderCli));
-  const foreignScript = path.join(foreignRoot, 'bin', 'model-gateway.js');
+  const foreignScript = path.join(foreignRoot, 'bin', 'code-team.js');
   const reservation = net.createServer();
   const port = await listen(reservation);
   await new Promise((resolve) => reservation.close(resolve));
@@ -1624,7 +1624,7 @@ test('cache-junction gateway process is preserved as a foreign port owner', asyn
   fs.mkdirSync(path.dirname(foreignScript), { recursive: true });
   fs.writeFileSync(foreignScript, `const http = require('node:http'); const server = http.createServer((request, response) => response.end('foreign')); server.listen(${port}, '127.0.0.1', () => process.stdout.write('ready\\n'));\n`);
   linkDirectory(foreignRoot, junctionRoot);
-  const foreign = spawn(process.execPath, [path.join(junctionRoot, 'bin', 'model-gateway.js'), 'serve-shim'], { stdio: ['ignore', 'pipe', 'ignore'] });
+  const foreign = spawn(process.execPath, [path.join(junctionRoot, 'bin', 'code-team.js'), 'serve-shim'], { stdio: ['ignore', 'pipe', 'ignore'] });
   t.after(async () => {
     if (processIsRunning(foreign.pid)) foreign.kill();
     await waitForExit(foreign);
@@ -1645,8 +1645,8 @@ test('cache-junction gateway process is preserved as a foreign port owner', asyn
 });
 
 test('proxy recovery preserves a foreign configured-port proxy owner', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-foreign-proxy-'));
-  const foreignScript = path.join(home, 'foreign-install', 'model-gateway', 'bin', 'model-gateway.js');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-foreign-proxy-'));
+  const foreignScript = path.join(home, 'foreign-install', 'code-team', 'bin', 'code-team.js');
   const reservation = net.createServer();
   const port = await listen(reservation);
   await new Promise((resolve) => reservation.close(resolve));
@@ -1694,7 +1694,7 @@ test('proxy recovery replaces a shared proxy binary descended from its superviso
   const proxyPid = 903;
   let modelsAvailable = false;
   const stopped = [];
-  const sharedProxyBinary = path.join(os.tmpdir(), 'model-gateway-shared-proxy');
+  const sharedProxyBinary = path.join(os.tmpdir(), 'code-team-shared-proxy');
   const processes = new Map([
     [proxyPid, { command: `${sharedProxyBinary} serve --no-monitor`, parentPid: process.pid, pid: proxyPid }],
   ]);
@@ -1720,8 +1720,8 @@ test('proxy recovery replaces a shared proxy binary descended from its superviso
 test('proxy recovery preserves a foreign install proxy using the shared binary', async () => {
   const proxyPid = 903;
   const foreignSupervisorPid = 902;
-  const sharedProxyBinary = path.join(os.tmpdir(), 'model-gateway-shared-proxy');
-  const foreignInstallScript = path.join(os.tmpdir(), 'foreign-install', 'model-gateway', 'bin', 'model-gateway.js');
+  const sharedProxyBinary = path.join(os.tmpdir(), 'code-team-shared-proxy');
+  const foreignInstallScript = path.join(os.tmpdir(), 'foreign-install', 'code-team', 'bin', 'code-team.js');
   const processes = new Map([
     [proxyPid, { command: `${sharedProxyBinary} serve --no-monitor`, parentPid: foreignSupervisorPid, pid: proxyPid }],
     [foreignSupervisorPid, { command: `${process.execPath} ${foreignInstallScript} serve-shim`, parentPid: null, pid: foreignSupervisorPid }],
@@ -1748,8 +1748,8 @@ test('proxy recovery preserves a foreign install proxy using the shared binary',
 });
 
 test('ensure and stop discard a stale guardian PID without killing its reused process', async (t) => {
-  const ensureHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-stale-ensure-'));
-  const stopHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-stale-stop-'));
+  const ensureHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-stale-ensure-'));
+  const stopHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-stale-stop-'));
   const ensureSleeper = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
   const stopSleeper = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
   t.after(async () => {
@@ -1761,7 +1761,7 @@ test('ensure and stop discard a stale guardian PID without killing its reused pr
   });
   installNodeProxy(ensureHome);
   for (const [home, sleeper] of [[ensureHome, ensureSleeper], [stopHome, stopSleeper]]) {
-    const state = path.join(home, '.claude', 'model-gateway');
+    const state = path.join(home, '.claude', 'code-team');
     fs.mkdirSync(state, { recursive: true });
     fs.writeFileSync(path.join(state, 'guardian.pid'), String(sleeper.pid));
   }
@@ -1783,16 +1783,16 @@ test('ensure and stop discard a stale guardian PID without killing its reused pr
   assert.equal(ensured.status, 0, ensured.stderr);
   assert.equal(processIsRunning(ensureSleeper.pid), true, 'ensure preserved the reused non-gateway process');
   assert.match(ensured.stderr, new RegExp(`pid record guardian retired because PID ${ensureSleeper.pid} no longer belongs to this gateway`));
-  assert.notEqual(Number(fs.readFileSync(path.join(ensureHome, '.claude', 'model-gateway', 'guardian.pid'), 'utf8')), ensureSleeper.pid);
+  assert.notEqual(Number(fs.readFileSync(path.join(ensureHome, '.claude', 'code-team', 'guardian.pid'), 'utf8')), ensureSleeper.pid);
   assert.equal(stopped.status, 0, stopped.stderr);
   assert.match(stopped.stderr, new RegExp(`pid record guardian retired because PID ${stopSleeper.pid} no longer belongs to this gateway`));
-  assert.equal(fs.existsSync(path.join(stopHome, '.claude', 'model-gateway', 'guardian.pid')), false);
+  assert.equal(fs.existsSync(path.join(stopHome, '.claude', 'code-team', 'guardian.pid')), false);
   assert.equal(processIsRunning(stopSleeper.pid), true, 'stop preserved the reused non-gateway process');
 });
 
 test('setup restart path refuses a foreign shim before it can restart its worker', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-foreign-setup-'));
-  const foreignScript = path.join(home, 'foreign-install', 'model-gateway', 'bin', 'model-gateway.js');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-foreign-setup-'));
+  const foreignScript = path.join(home, 'foreign-install', 'code-team', 'bin', 'code-team.js');
   const reservation = net.createServer();
   const port = await listen(reservation);
   await new Promise((resolve) => reservation.close(resolve));
@@ -1885,7 +1885,7 @@ test('supervisor health remains responsive while a timed-out ownership probe def
 });
 
 test('supervisor shutdown reaps a timed probe child before fixture cleanup', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-probe-child-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-probe-child-'));
   const supervisionPath = path.join(__dirname, '..', 'lib', 'process-supervision.js');
   const supervisorScript = `
     const { commandResultAsync, createProbeChildRegistry, createProxyRecovery } = require(${JSON.stringify(path.join(__dirname, '..', 'lib', 'process-supervision.js'))});

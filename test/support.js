@@ -8,7 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { setTimeout: sleep } = require('node:timers/promises');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const START_TIMEOUT_MS = 5000;
 const PROCESS_CLEANUP_TIMEOUT_MS = 5000;
 const PROCESS_CLEANUP_POLL_MS = 25;
@@ -24,7 +24,7 @@ const gatewayTestEnvironments = new WeakMap();
 const ownedGatewayTestEnvironments = new Map();
 
 function gatewayPidFile(home, name) {
-  return path.join(home, '.claude', 'model-gateway', `${name}.pid`);
+  return path.join(home, '.claude', 'code-team', `${name}.pid`);
 }
 
 function processIsRunning(pid, { kill = process.kill, platform = process.platform } = {}) {
@@ -306,7 +306,7 @@ function controlTokenFromDescriptor(descriptor) {
 }
 
 function readFixtureControlToken(home) {
-  const descriptor = fs.openSync(path.join(home, '.claude', 'model-gateway', 'control-token'), 'r');
+  const descriptor = fs.openSync(path.join(home, '.claude', 'code-team', 'control-token'), 'r');
   try { return controlTokenFromDescriptor(descriptor); } finally { fs.closeSync(descriptor); }
 }
 
@@ -367,7 +367,7 @@ function deliverFixtureWorkerDrain(child, prepared, timeout) {
       request = http.request({
         hostname: '127.0.0.1', port: prepared.port, path: '/drain', method: 'POST', agent: false,
         headers: { connection: 'close', 'content-type': 'application/json', 'content-length': '2',
-          'x-model-gateway-control-token': prepared.token },
+          'x-code-team-control-token': prepared.token },
       }, (incoming) => { response = incoming; receiveFixtureDrain(incoming, finish); });
       request.once('error', (error) => finish({ kind: 'transport-error', code: cleanupDiagnostic(error.code) }));
       request.end('{}');
@@ -581,7 +581,7 @@ function observeFixtureExit(child) {
 }
 
 function fixtureStartupFailure(error, home, stdout, stderr) {
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   const files = FIXTURE_STARTUP_FILES.map((file) => `[${file}]\n${fixtureFileExcerpt(path.join(state, file))}`);
   return new Error([String(error.message).slice(0, 2048), `[supervisor stdout]\n${stdout.text()}`,
     `[supervisor stderr]\n${stderr.text()}`, ...files].join('\n'));
@@ -680,7 +680,7 @@ function isInheritedGatewayOverride(key, value) {
 }
 
 function testSocketPath(home) {
-  if (process.platform === 'win32') return `\\\\.\\pipe\\model-gateway-test-${path.basename(home)}`;
+  if (process.platform === 'win32') return `\\\\.\\pipe\\code-team-test-${path.basename(home)}`;
   return path.join(home, 'gateway.sock');
 }
 
@@ -688,7 +688,7 @@ function createGatewayTestEnvironment(overrides = {}, isolatedOverrides = {}) {
   const suppliedHome = overrides.HOME || overrides.USERPROFILE;
   const home = suppliedHome && suppliedHome !== process.env.HOME && suppliedHome !== process.env.USERPROFILE
     ? suppliedHome
-    : fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-test-'));
+    : fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-test-'));
   const ownsHome = home !== suppliedHome;
   const environment = { ...process.env };
   for (const key of Object.keys(environment)) {
@@ -702,7 +702,7 @@ function createGatewayTestEnvironment(overrides = {}, isolatedOverrides = {}) {
     USERPROFILE: home,
     CLAUDE_CONFIG_DIR: path.join(home, '.claude'),
     CODEX_HOME: path.join(home, '.codex'),
-    MODEL_GATEWAY_REQUEST_BODY_DIR: path.join(home, '.claude', 'model-gateway', 'request-body'),
+    MODEL_GATEWAY_REQUEST_BODY_DIR: path.join(home, '.claude', 'code-team', 'request-body'),
     HTTP_PROXY: '',
     HTTPS_PROXY: '',
     ALL_PROXY: '',

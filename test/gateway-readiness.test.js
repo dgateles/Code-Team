@@ -10,7 +10,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { gatewayTestEnvironment, startGateway, spawnGatewayProcess } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const gateway = require(CLI);
 
 function listen(server) {
@@ -215,8 +215,8 @@ test('upstream-blocked survives a health check and clears on a successful Codex 
   assert.equal(result.afterHealthCheck.state, 'upstream-blocked');
   assert.equal(result.afterSuccess.state, 'ready');
 
-  const gatewaySkill = fs.readFileSync(path.join(__dirname, '..', 'skills', 'model-gateway', 'SKILL.md'), 'utf8');
-  const guide = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'docs', 'src', 'content', 'docs', 'getting-started', 'model-gateway.md'), 'utf8');
+  const gatewaySkill = fs.readFileSync(path.join(__dirname, '..', 'skills', 'code-team', 'SKILL.md'), 'utf8');
+  const guide = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'docs', 'src', 'content', 'docs', 'getting-started', 'code-team.md'), 'utf8');
   for (const prose of [gatewaySkill, guide]) {
     assert.match(prose, /An attributed OpenAI 401, 403, or 429 rejection enters\s+`upstream-blocked`/);
     assert.match(prose, /A 401 or 403 stays until `setup` or a completed successful Codex\s+response\s+clears it/);
@@ -253,8 +253,8 @@ test('shim health retains an OpenAI rejection until a successful proxied request
   ));
 
   assert.equal(shimPort, supervisorPort);
-  const workerLog = fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'logs', 'shim.log'), 'utf8');
-  const workerPort = Number(workerLog.match(/model-gateway shim listening on 127\.0\.0\.1:(\d+)/)[1]);
+  const workerLog = fs.readFileSync(path.join(home, '.claude', 'code-team', 'logs', 'shim.log'), 'utf8');
+  const workerPort = Number(workerLog.match(/code-team shim listening on 127\.0\.0\.1:(\d+)/)[1]);
   assert.notEqual(workerPort, supervisorPort);
 
   const payload = { model: 'claude-gpt-5.6-terra', messages: [], max_tokens: 1 };
@@ -376,7 +376,7 @@ function bindOwner(t, socketPath) {
 }
 
 test('#367: a second shim binding the gateway socket leaves the live owner alone', async (t) => {
-  let socketPath = `\\\\.\\pipe\\model-gateway-test-${process.pid}-${Date.now()}`;
+  let socketPath = `\\\\.\\pipe\\code-team-test-${process.pid}-${Date.now()}`;
   if (process.platform !== 'win32') {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mg-sock-'));
     t.after(() => fs.rmSync(directory, { recursive: true, force: true }));

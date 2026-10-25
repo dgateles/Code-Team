@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 
-const gateway = require(path.join(__dirname, '..', 'bin', 'model-gateway.js'));
+const gateway = require(path.join(__dirname, '..', 'bin', 'code-team.js'));
 
 test('quiet ensure stops waiting inside its hook budget when the proxy never answers', async () => {
   let now = 0;

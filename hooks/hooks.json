@@ -1,5 +1,5 @@
 {
-  "description": "model-gateway: SessionStart waits up to 12 seconds for the local Codex gateway (proxy + shim), then exits 0 and may ask for a retry while startup finishes in the background",
+  "description": "Code Team: SessionStart waits up to 12 seconds for the local gateway, then exits 0 and may ask for a retry while startup finishes in the background",
   "hooks": {
     "SessionStart": [
       {
@@ -11,7 +11,7 @@
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/model-gateway.js\" ensure --quiet",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/code-team.js\" ensure --quiet",
             "timeout": 30
           }
         ]

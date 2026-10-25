@@ -12,7 +12,7 @@ const test = require('node:test');
 const { gatewayTestEnvironment, startGateway, waitForFixtureProxy } = require('./support.js');
 
 function proxyReadinessFixture(t) {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-proxy-readiness-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-proxy-readiness-'));
   const child = Object.assign(new EventEmitter(), {
     exitCode: null, signalCode: null, stdout: new PassThrough(), stderr: new PassThrough(),
   });
@@ -169,7 +169,7 @@ test('fixture proxy readiness caps individual probes even with launch time remai
 
 test('fixture proxy readiness retains bounded actual diagnostics before fixture removal', async (t) => {
   const { child, home } = proxyReadinessFixture(t);
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   const files = ['shim-supervisor-failure.txt', 'logs/lifecycle.jsonl', 'logs/proxy.log', 'logs/shim.log', 'proxy.pid.json'];
   for (const file of files) {
     const target = path.join(state, file);
@@ -213,7 +213,7 @@ function freePort() {
 }
 
 function startupTimeoutCliPath(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-startup-timeout-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-startup-timeout-'));
   const cliPath = path.join(directory, 'cli.js');
   fs.writeFileSync(cliPath, `
     'use strict';

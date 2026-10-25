@@ -13,7 +13,7 @@ const zlib = require('node:zlib');
 
 const { inputComposition } = require('../lib/usage-observability.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 
 function listen(server) {
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
@@ -113,7 +113,7 @@ async function collector(t, delayMs = 0) {
 async function spawnShim(t, proxyPort, usageEndpoint, anthropicUpstream = undefined) {
   const shimPort = await unusedPort();
   const compatPort = await unusedPort();
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-usage-integration-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-usage-integration-'));
   const hostsFile = path.join(directory, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 localhost\n');
   const child = spawnGatewayProcess(t, process.execPath, [CLI, 'serve-shim'], {

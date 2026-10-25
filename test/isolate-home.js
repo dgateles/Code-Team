@@ -9,7 +9,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-test-home-'));
+const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-test-home-'));
 process.env.HOME = home;
 process.env.USERPROFILE = home;
 process.env.CLAUDE_CONFIG_DIR = path.join(home, '.claude');

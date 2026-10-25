@@ -1,23 +1,28 @@
 {
-  "name": "model-gateway",
-  "version": "0.55.3",
-  "description": "Your ChatGPT/Codex and Grok subscription models in Claude Code's /model picker. A local gateway routes claude-gpt-* models to OpenAI's Codex backend, claude-grok-* models to Grok, and everything else to api.anthropic.com, so you switch between Claude, GPT-5.x, and Grok mid-session like any other model. No API keys.",
+  "name": "code-team",
+  "version": "0.1.0",
+  "description": "Use Claude Code with Antigravity, GPT, Kimi, Grok and other models.",
   "author": {
-    "name": "Eigenwise",
-    "email": "kenny@eigenwise.io"
+    "name": "Douglas Teles"
   },
-  "homepage": "https://github.com/Eigenwise/eigenwise-toolshed/tree/main/plugins/model-gateway",
-  "repository": "https://github.com/Eigenwise/eigenwise-toolshed",
+  "homepage": "https://github.com/dgateles/Code-Team",
+  "repository": "https://github.com/dgateles/Code-Team",
   "license": "MIT",
   "suiteTimeout": 300000,
   "keywords": [
-    "codex",
-    "openai",
-    "gpt",
-    "chatgpt",
     "model-picker",
     "gateway",
     "proxy",
-    "subscription"
+    "providers",
+    "codex",
+    "chatgpt",
+    "grok",
+    "deepseek",
+    "kimi",
+    "glm",
+    "minimax",
+    "openrouter",
+    "antigravity",
+    "anthropic-compatible"
   ]
 }

@@ -10,12 +10,12 @@ const { spawnGatewayProcessSync, startGateway } = require('./support.js');
 
 delete process.env.CODEX_GATEWAY_CONTEXT_WINDOW;
 delete process.env.CODEX_GATEWAY_COMPACT_TRIGGER;
-const inProcessHome = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-context-setting-'));
+const inProcessHome = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-context-setting-'));
 process.env.HOME = inProcessHome;
 process.env.USERPROFILE = inProcessHome;
 test.after(() => fs.rmSync(inProcessHome, { recursive: true, force: true }));
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const runtime = require('../lib/runtime.js');
 const { effectiveSentryPolicy } = require('../lib/request-worker.js');
 const { contextWindowReport, contextWindowUpdate, savedContextWindows, syncClaudeContextWindow } = require('../lib/context-window.js');
@@ -49,7 +49,7 @@ test('the default caps Codex at 272000 and leaves Claude and Grok full', () => {
 });
 
 test('a saved value beats CODEX_GATEWAY_CONTEXT_WINDOW, which beats the default, and invalid values fall through', (t) => {
-  const file = path.join(temporaryDirectory(t, 'model-gateway-context-file-'), 'context-window.json');
+  const file = path.join(temporaryDirectory(t, 'code-team-context-file-'), 'context-window.json');
   const env = { CODEX_GATEWAY_CONTEXT_WINDOW: '250000' };
   assert.deepEqual(runtime.readContextWindowSettings({ file, env }).codex, { value: 250000, source: 'CODEX_GATEWAY_CONTEXT_WINDOW' });
   runtime.writeContextWindowSettings({ codex: 'full', claude: 50000, grok: 400000 }, file);
@@ -98,7 +98,7 @@ test('the report labels the Codex cap with the 2x rule and names a session-wide 
 });
 
 test('a Claude cap replaces only the autoCompactWindow the gateway wrote', (t) => {
-  const directory = temporaryDirectory(t, 'model-gateway-claude-cap-');
+  const directory = temporaryDirectory(t, 'code-team-claude-cap-');
   const owned = path.join(directory, 'owned.json');
   const user = path.join(directory, 'user.json');
   const unset = path.join(directory, 'unset.json');
@@ -133,16 +133,16 @@ test('the catalog carries each discovered row\'s window and the Codex billing no
 });
 
 test('context-window writes a Claude cap into project-wired settings and refuses without one', (t) => {
-  const home = temporaryDirectory(t, 'model-gateway-context-home-');
-  const project = temporaryDirectory(t, 'model-gateway-context-project-');
+  const home = temporaryDirectory(t, 'code-team-context-home-');
+  const project = temporaryDirectory(t, 'code-team-context-project-');
   const env = { ...process.env, HOME: home, USERPROFILE: home };
-  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18764', CODEX_GATEWAY_WORKER_PORT: '18764', CODEX_GATEWAY_PROXY_PORT: '18765' };
+  const isolatedOverrides = { CODEX_GATEWAY_PORT: '18774', CODEX_GATEWAY_WORKER_PORT: '18774', CODEX_GATEWAY_PROXY_PORT: '18775' };
   const run = (...args) => spawnGatewayProcessSync(process.execPath, [CLI, ...args], { cwd: project, env, isolatedOverrides, encoding: 'utf8' });
 
   const refused = run('context-window', '--claude', '500000');
   assert.equal(refused.status, 2);
   assert.match(refused.stderr, /no project is wired to the gateway at project scope/);
-  assert.equal(fs.existsSync(path.join(home, '.claude', 'model-gateway', 'context-window.json')), false);
+  assert.equal(fs.existsSync(path.join(home, '.claude', 'code-team', 'context-window.json')), false);
 
   assert.equal(run('env', '--write-project').status, 0);
   const settingsFile = path.join(project, '.claude', 'settings.local.json');
@@ -151,13 +151,13 @@ test('context-window writes a Claude cap into project-wired settings and refuses
   assert.match(saved.stdout, /updated autoCompactWindow in /);
   assert.match(saved.stdout, /context window codex: 300000 cap \[saved\]; compacts past 215000; OpenAI bills input above 272k tokens at 2x; requests past 272k pay double/);
   assert.equal(JSON.parse(fs.readFileSync(settingsFile, 'utf8')).autoCompactWindow, 500000);
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, '.claude', 'model-gateway', 'context-window.json'), 'utf8')), { claude: 500000, codex: 300000 });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, '.claude', 'code-team', 'context-window.json'), 'utf8')), { claude: 500000, codex: 300000 });
 
   const shown = run('context-window');
   assert.equal(shown.status, 0);
   assert.match(shown.stdout, /context window claude: 500000 \(autoCompactWindow in project-wired settings\) \[saved\]; native window 500000; exact compaction trigger unverified \(native engine headroom applies\)/);
 
-  const laterProject = temporaryDirectory(t, 'model-gateway-context-later-');
+  const laterProject = temporaryDirectory(t, 'code-team-context-later-');
   const runLater = (...args) => spawnGatewayProcessSync(process.execPath, [CLI, ...args], { cwd: laterProject, env, isolatedOverrides, encoding: 'utf8' });
   const laterFile = path.join(laterProject, '.claude', 'settings.local.json');
   assert.equal(runLater('env', '--write-project').status, 0);
@@ -181,8 +181,8 @@ test('a saved Codex cap reaches the shim\'s advertised max_input_tokens without 
   });
   const proxyPort = await new Promise((resolve) => proxy.listen(0, '127.0.0.1', () => resolve(proxy.address().port)));
   t.after(() => proxy.close());
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-context-shim-'));
-  runtime.writeContextWindowSettings({ codex: 300000 }, path.join(home, '.claude', 'model-gateway', 'context-window.json'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-context-shim-'));
+  runtime.writeContextWindowSettings({ codex: 300000 }, path.join(home, '.claude', 'code-team', 'context-window.json'));
   const { port } = await startGateway(t, 'serve-shim', {
     HOME: home,
     USERPROFILE: home,
@@ -227,7 +227,7 @@ test('context-window compact-at validates positive whole counts and rejects unsu
   assert.match(contextWindowUpdate('--codex-compact-at', 'NaN').error, /positive whole token count/);
   assert.match(contextWindowUpdate('--codex-compact-at', undefined).error, /positive whole token count/);
   assert.equal(runtime.parseCompactAtValue(true), null);
-  const file = path.join(temporaryDirectory(t, 'model-gateway-invalid-compact-at-'), 'nested', 'context-window.json');
+  const file = path.join(temporaryDirectory(t, 'code-team-invalid-compact-at-'), 'nested', 'context-window.json');
   assert.throws(() => runtime.writeContextWindowSettings({ compactAt: { claude: 242000 } }, file), /unsupported compactAt.claude/);
   assert.throws(() => runtime.writeContextWindowSettings({ compactAt: { codex: 0 } }, file), /invalid compactAt.codex/);
   assert.throws(() => runtime.writeContextWindowSettings({ compactAt: { codex: '242000' } }, file), /invalid compactAt.codex/);
@@ -236,12 +236,12 @@ test('context-window compact-at validates positive whole counts and rejects unsu
 });
 
 test('context-window preserves saved compact-at across cap updates and removal restores legacy policy', (t) => {
-  const home = temporaryDirectory(t, 'model-gateway-explicit-context-home-');
-  const project = temporaryDirectory(t, 'model-gateway-explicit-context-project-');
+  const home = temporaryDirectory(t, 'code-team-explicit-context-home-');
+  const project = temporaryDirectory(t, 'code-team-explicit-context-project-');
   const env = { ...process.env, HOME: home, USERPROFILE: home };
   const isolatedOverrides = { CODEX_GATEWAY_COMPACT_TRIGGER: '320000' };
   const run = (...arguments_) => spawnGatewayProcessSync(process.execPath, [CLI, ...arguments_], { cwd: project, env, isolatedOverrides, encoding: 'utf8', timeout: 15000 });
-  const file = path.join(home, '.claude', 'model-gateway', 'context-window.json');
+  const file = path.join(home, '.claude', 'code-team', 'context-window.json');
   const saved = run('context-window', '--codex-compact-at', '242000', '--grok-compact-at', '900000');
   assert.equal(saved.status, 0, saved.stderr);
   assert.match(saved.stdout, /codex: 272000 cap \[default\]; requested compact-at 242000; backend window 920000; effective maximum 242000 \(compact-at\)/);
@@ -267,8 +267,8 @@ test('context-window preserves saved compact-at across cap updates and removal r
 });
 
 test('startup context-window compact-at reaches the real catalog and sentry with honest effective limits', (t) => {
-  const home = temporaryDirectory(t, 'model-gateway-explicit-catalog-');
-  const file = path.join(home, '.claude', 'model-gateway', 'context-window.json');
+  const home = temporaryDirectory(t, 'code-team-explicit-catalog-');
+  const file = path.join(home, '.claude', 'code-team', 'context-window.json');
   runtime.writeContextWindowSettings({ codex: 272000, compactAt: { codex: 242000, grok: 900000 } }, file);
   const script = `
     const runtime = require(${JSON.stringify(path.join(__dirname, '..', 'lib', 'runtime.js'))});

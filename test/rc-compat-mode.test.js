@@ -11,7 +11,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { spawnGatewayProcess } = require('./support.js');
 
-const CLI = path.join(__dirname, '..', 'bin', 'model-gateway.js');
+const CLI = path.join(__dirname, '..', 'bin', 'code-team.js');
 const gw = require(CLI);
 const remoteControl = require('../lib/remote-control.js');
 const { unsafeRemoteControlProcessEnv } = require('../lib/settings-wiring.js');
@@ -160,7 +160,7 @@ test('parseHostsCompatEntry recognizes the managed entry across Windows/macOS/Li
   const positive = [
     '127.0.0.1 api.anthropic.com',
     '127.0.0.1\tapi.anthropic.com',
-    '127.0.0.1   api.anthropic.com   # model-gateway RC compatibility',
+    '127.0.0.1   api.anthropic.com   # code-team RC compatibility',
     '  127.0.0.1  api.anthropic.com  ',
     '127.0.0.1 API.ANTHROPIC.COM',
     '127.0.0.1 other.example.com api.anthropic.com',
@@ -189,7 +189,7 @@ test('parseHostsCompatEntry recognizes the managed entry across Windows/macOS/Li
 
 test('parseHostsCompatEntry scans a full multi-line hosts file and stops at the first match', () => {
   const text = [
-    '# managed by model-gateway',
+    '# managed by code-team',
     '255.255.255.255 broadcast.example',
     '127.0.0.1 localhost',
     '127.0.0.1 api.anthropic.com',
@@ -201,10 +201,10 @@ test('parseHostsCompatEntry scans a full multi-line hosts file and stops at the 
 
 test('parseHostsCompatBlock identifies absent, partial, valid, and invalid plugin blocks', () => {
   assert.equal(gw.parseHostsCompatBlock('127.0.0.1 localhost\n').state, 'absent');
-  assert.equal(gw.parseHostsCompatBlock('# >>> model-gateway RC compatibility >>>\n').state, 'partial');
-  assert.equal(gw.parseHostsCompatBlock('# <<< model-gateway RC compatibility <<<\n').state, 'partial');
+  assert.equal(gw.parseHostsCompatBlock('# >>> code-team RC compatibility >>>\n').state, 'partial');
+  assert.equal(gw.parseHostsCompatBlock('# <<< code-team RC compatibility <<<\n').state, 'partial');
   assert.equal(gw.parseHostsCompatBlock(gw.managedHostsBlock()).state, 'valid');
-  assert.equal(gw.parseHostsCompatBlock('# >>> model-gateway RC compatibility >>>\n127.0.0.1 localhost\n# <<< model-gateway RC compatibility <<<\n').state, 'invalid');
+  assert.equal(gw.parseHostsCompatBlock('# >>> code-team RC compatibility >>>\n127.0.0.1 localhost\n# <<< code-team RC compatibility <<<\n').state, 'invalid');
 });
 
 test('addManagedHostsBlock and removeManagedHostsBlock preserve unrelated hosts content', () => {
@@ -223,8 +223,8 @@ test('addManagedHostsBlock and removeManagedHostsBlock preserve unrelated hosts 
 });
 
 test('managed hosts transforms reject partial blocks and doctor finds non-loopback conflicts', () => {
-  assert.throws(() => gw.addManagedHostsBlock('# >>> model-gateway RC compatibility >>>\n'), /partial/);
-  assert.throws(() => gw.removeManagedHostsBlock('# <<< model-gateway RC compatibility <<<\n'), /partial/);
+  assert.throws(() => gw.addManagedHostsBlock('# >>> code-team RC compatibility >>>\n'), /partial/);
+  assert.throws(() => gw.removeManagedHostsBlock('# <<< code-team RC compatibility <<<\n'), /partial/);
   assert.deepEqual(
     gw.findConflictingHostsMappings('203.0.113.4 api.anthropic.com\n127.0.0.1 api.anthropic.com\n'),
     ['203.0.113.4 api.anthropic.com'],
@@ -232,7 +232,7 @@ test('managed hosts transforms reject partial blocks and doctor finds non-loopba
 });
 
 test('remote-control enable adopts unmarked loopback mappings and distinguishes confirmed writes', async (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-'));
   const hostsFile = path.join(dir, 'hosts');
   const previousHostsFile = process.env.CODEX_GATEWAY_HOSTS_FILE;
   t.after(() => {
@@ -266,21 +266,21 @@ test('remote-control enable adopts unmarked loopback mappings and distinguishes 
   fs.writeFileSync(hostsFile, original);
   const adopted = gw.addManagedHostsBlock(original);
   assert.equal(adopted.changed, true);
-  assert.match(adopted.text, /# >>> model-gateway RC compatibility >>>\n  127\.0\.0\.1\tapi\.anthropic\.com  # keep this\n# <<< model-gateway RC compatibility <<</);
+  assert.match(adopted.text, /# >>> code-team RC compatibility >>>\n  127\.0\.0\.1\tapi\.anthropic\.com  # keep this\n# <<< code-team RC compatibility <<</);
   assert.equal((adopted.text.match(/api\.anthropic\.com/g) || []).length, 1);
   assert.equal(gw.addManagedHostsBlock(gw.managedHostsBlock()).changed, false);
-  assert.throws(() => gw.addManagedHostsBlock('# >>> model-gateway RC compatibility >>>\n127.0.0.1 localhost\n# <<< model-gateway RC compatibility <<<\n'), /invalid/);
+  assert.throws(() => gw.addManagedHostsBlock('# >>> code-team RC compatibility >>>\n127.0.0.1 localhost\n# <<< code-team RC compatibility <<<\n'), /invalid/);
 
   configure(['doctor']);
   await remoteControl.remoteControlCommand();
   assert.match(output.join('\n'), /plugin block: absent \(unmarked loopback mapping present, enable will adopt it\)/);
   assert.match(output.join('\n'), /Remote Control transport: this bind check covers the local HTTP listener only; it does not verify end-to-end Remote Control\./);
 
-  const gatewaySkill = fs.readFileSync(path.join(__dirname, '..', 'skills', 'model-gateway', 'SKILL.md'), 'utf8');
-  const guide = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'docs', 'src', 'content', 'docs', 'getting-started', 'model-gateway.md'), 'utf8');
+  const gatewaySkill = fs.readFileSync(path.join(__dirname, '..', 'skills', 'code-team', 'SKILL.md'), 'utf8');
+  const guide = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'docs', 'src', 'content', 'docs', 'getting-started', 'code-team.md'), 'utf8');
   assert.match(gatewaySkill, /After the user directly confirms `remote-control enable --confirm`, the plugin creates a backup and writes its marked hosts block/);
   assert.match(gatewaySkill, /local HTTP transport configuration, not a verified end-to-end Remote Control solution/);
-  assert.match(guide, /After you directly confirm `remote-control enable --confirm`, Model Gateway creates a backup and writes its marked hosts block/);
+  assert.match(guide, /After you directly confirm `remote-control enable --confirm`, Code Team creates a backup and writes its marked hosts block/);
   assert.match(guide, /local HTTP transport only/);
 
   output.length = 0;
@@ -293,8 +293,8 @@ test('remote-control enable adopts unmarked loopback mappings and distinguishes 
   await remoteControl.remoteControlCommand();
   const enabled = fs.readFileSync(hostsFile, 'utf8');
   assert.equal((enabled.match(/api\.anthropic\.com/g) || []).length, 1);
-  assert.match(enabled, /# >>> model-gateway RC compatibility >>>/);
-  assert.match(enabled, /# <<< model-gateway RC compatibility <<</);
+  assert.match(enabled, /# >>> code-team RC compatibility >>>/);
+  assert.match(enabled, /# <<< code-team RC compatibility <<</);
   assert.match(output.join('\n'), /updated hosts file:/);
   assert.doesNotMatch(output.join('\n'), /Do you want to make this hosts-file change|Notepad as Administrator/);
   assert.equal(startCalls, 0);
@@ -316,7 +316,7 @@ test('remote-control enable adopts unmarked loopback mappings and distinguishes 
 });
 
 test('remote-control enable refuses a port conflict before hosts writes and names Docker Desktop', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-port-conflict-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-port-conflict-'));
   const hostsFile = path.join(directory, 'hosts');
   const previousHostsFile = process.env.CODEX_GATEWAY_HOSTS_FILE;
   t.after(() => {
@@ -353,7 +353,7 @@ test('remote-control enable refuses a port conflict before hosts writes and name
 });
 
 test('remote-control enable refuses an HTTPS process override before hosts backup or reconciliation', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-process-env-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-process-env-'));
   const hostsFile = path.join(directory, 'hosts');
   const previousHostsFile = process.env.CODEX_GATEWAY_HOSTS_FILE;
   const previousBaseUrl = process.env.ANTHROPIC_BASE_URL;
@@ -420,7 +420,7 @@ test('remote-control enable refuses an HTTPS process override before hosts backu
 });
 
 test('remote-control enable refuses unbindable serving before backup or hosts writes', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-serving-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-serving-'));
   const hostsFile = path.join(directory, 'hosts');
   const previousHostsFile = process.env.CODEX_GATEWAY_HOSTS_FILE;
   const original = '127.0.0.1 localhost\n';
@@ -454,7 +454,7 @@ test('remote-control enable refuses unbindable serving before backup or hosts wr
 });
 
 test('remote-control enable rolls back only its own hosts bytes', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-rollback-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-rollback-'));
   const hostsFile = path.join(directory, 'hosts');
   const previousHostsFile = process.env.CODEX_GATEWAY_HOSTS_FILE;
   const original = '127.0.0.1 localhost\n';
@@ -511,7 +511,7 @@ test('remote-control enable rolls back only its own hosts bytes', async (t) => {
 });
 
 test('remote-control enable rolls back when required wiring does not attest compat', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-sync-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-sync-'));
   const hostsFile = path.join(directory, 'hosts');
   const previousHostsFile = process.env.CODEX_GATEWAY_HOSTS_FILE;
   const original = '127.0.0.1 localhost\n';
@@ -558,9 +558,9 @@ test('remote-control enable rolls back when required wiring does not attest comp
 });
 
 test('remote-control CLI adopts an unmarked mapping from its serving supervisor', async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-cli-home-'));
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-cli-project-'));
-  const callerProject = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-remote-control-cli-caller-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-cli-home-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-cli-project-'));
+  const callerProject = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-remote-control-cli-caller-'));
   const projectSettings = path.join(project, '.claude', 'settings.local.json');
   const callerSettings = path.join(callerProject, '.claude', 'settings.local.json');
   const callerBytes = '{\n  "sentinel": "caller-project"\n}\n';
@@ -597,7 +597,7 @@ test('remote-control CLI adopts an unmarked mapping from its serving supervisor'
   assert.equal(command.exitCode, 0, command.output);
   assert.equal(JSON.parse(fs.readFileSync(projectSettings, 'utf8')).env.ANTHROPIC_BASE_URL, gw.COMPAT_BASE_URL);
   assert.equal(fs.readFileSync(callerSettings, 'utf8'), callerBytes);
-  assert.match(fs.readFileSync(hostsFile, 'utf8'), /# >>> model-gateway RC compatibility >>>/);
+  assert.match(fs.readFileSync(hostsFile, 'utf8'), /# >>> code-team RC compatibility >>>/);
   const activeHealth = await waitForHealthz(shimPort);
   assert.equal(activeHealth.supervisorPid, shim.pid);
   assert.equal(activeHealth.compat.port80Bound, true);
@@ -606,7 +606,7 @@ test('remote-control CLI adopts an unmarked mapping from its serving supervisor'
 // ------------------------------------------------------- detectHostsCompat
 
 test('detectHostsCompat reads an overridden path and never touches the real hosts file', (t) => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-hosts-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-hosts-'));
   const hostsFile = path.join(dir, 'hosts');
   const prevOverride = process.env.CODEX_GATEWAY_HOSTS_FILE;
   t.after(() => {
@@ -649,8 +649,8 @@ test('syncCompatMode attests default without writing fallback when required comp
 });
 
 test('writeEnv removes retired socket wiring while preserving unrelated settings', (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-writeenv-'));
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-writeenv-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-writeenv-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-writeenv-project-'));
   const prevUserProfile = process.env.USERPROFILE;
   const prevHome = process.env.HOME;
   // wiredMode() reads the environment too, and this suite runs inside a wired
@@ -705,8 +705,8 @@ test('writeEnv removes retired socket wiring while preserving unrelated settings
 // the selected scope. Whatever the two disagree about, they must never disagree
 // about whether anything is wired at all.
 test('wiredMode agrees with isWired for environment-only and project-local wiring', (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-wiredmode-'));
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-project-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-wiredmode-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-project-'));
   const previous = {
     USERPROFILE: process.env.USERPROFILE,
     HOME: process.env.HOME,
@@ -743,7 +743,7 @@ test('wiredMode agrees with isWired for environment-only and project-local wirin
 // themselves: they are ordinary Claude Code settings this plugin only sometimes
 // owns, and claiming them by key wiped a working configuration.
 test('env --remove keeps alias pins the gateway did not write', (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-pins-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-pins-'));
   const previous = { USERPROFILE: process.env.USERPROFILE, HOME: process.env.HOME };
   t.after(() => {
     for (const [key, value] of Object.entries(previous)) {
@@ -827,7 +827,7 @@ test('createHostsBypassResolver errors closed instead of recursing when DNS is u
 // -------------------------------------------------- live shim, dual listen
 
 test('serve-shim binds a second RC-compatibility listener only when the hosts entry is present', async (t) => {
-  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-shimhosts-'));
+  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-shimhosts-'));
   const hostsFile = path.join(hostsDir, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 localhost\n127.0.0.1 api.anthropic.com\n');
 
@@ -855,7 +855,7 @@ test('serve-shim binds a second RC-compatibility listener only when the hosts en
 });
 
 test('serve-shim stays default-only when no hosts entry is present', async (t) => {
-  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-shimnohosts-'));
+  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-shimnohosts-'));
   const hostsFile = path.join(hostsDir, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 localhost\n'); // no api.anthropic.com entry
 
@@ -874,7 +874,7 @@ test('serve-shim stays default-only when no hosts entry is present', async (t) =
 });
 
 test('serve-shim exposes bounded RC control only through the main loopback listener', async (t) => {
-  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-shimcontrol-'));
+  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-shimcontrol-'));
   const hostsFile = path.join(hostsDir, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 localhost\n');
   const shimPort = await freePort();
@@ -883,7 +883,7 @@ test('serve-shim exposes bounded RC control only through the main loopback liste
   spawnShim(t, { shimPort, proxyPort, compatPort, hostsFile, home: hostsDir });
   const health = await waitForHealthz(shimPort);
   const body = JSON.stringify({ action: 'probe', expectedSupervisorPid: health.supervisorPid });
-  const controlHeaders = { 'x-model-gateway-control': 'rc-compatibility' };
+  const controlHeaders = { 'x-code-team-control': 'rc-compatibility' };
   for (const [headers, status] of [
     [{}, 404],
     [{ ...controlHeaders, origin: 'http://127.0.0.1' }, 403],
@@ -926,11 +926,11 @@ test('serve-shim exposes bounded RC control only through the main loopback liste
 });
 
 test('serve-shim accepts requests through ANTHROPIC_UNIX_SOCKET', async (t) => {
-  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-shimsocket-'));
+  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-shimsocket-'));
   const hostsFile = path.join(hostsDir, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 localhost\n');
   const socketPath = process.platform === 'win32'
-    ? `\\\\.\\pipe\\model-gateway-test-${process.pid}-${Date.now()}`
+    ? `\\\\.\\pipe\\code-team-test-${process.pid}-${Date.now()}`
     : path.join(hostsDir, 'gateway.sock');
 
   const shimPort = await freePort();
@@ -946,7 +946,7 @@ test('serve-shim accepts requests through ANTHROPIC_UNIX_SOCKET', async (t) => {
 });
 
 test('serve-shim forwards an unexpected bodyless request without crashing on raw.length', async (t) => {
-  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-bodyless-'));
+  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-bodyless-'));
   const hostsFile = path.join(hostsDir, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 localhost\n');
 
@@ -980,7 +980,7 @@ test('serve-shim forwards an unexpected bodyless request without crashing on raw
 });
 
 test('serve-shim safely retains default mode when the compatibility port is unavailable', async (t) => {
-  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-shimportbusy-'));
+  const hostsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-shimportbusy-'));
   const hostsFile = path.join(hostsDir, 'hosts');
   fs.writeFileSync(hostsFile, '127.0.0.1 api.anthropic.com\n');
 

@@ -14,7 +14,7 @@ const { createProxyRecovery, portListening, processOwningPort, proxyModelsAnswer
 const { spawnGatewayProcessSync } = require('./support.js');
 
 test('supervisor waits out a slow-starting proxy child instead of racing it (#251)', async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-slow-proxy-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-slow-proxy-'));
   const script = path.join(root, 'slow-proxy.js');
   fs.writeFileSync(script, [
     "const http = require('node:http');",
@@ -115,7 +115,7 @@ function probeWith({ owner, health = null, recordedPid = null, record = null }) 
 }
 
 test('the shared shim probe names each of its four states', async () => {
-  const ours = await probeWith({ owner: { state: 'same-install', pid: 800, installRoot: '/cache/model-gateway/1.0.0' }, health: { ok: true, supervisorVersion: '1.2.3' } });
+  const ours = await probeWith({ owner: { state: 'same-install', pid: 800, installRoot: '/cache/code-team/1.0.0' }, health: { ok: true, supervisorVersion: '1.2.3' } });
   assert.equal(ours.state, 'running-ours');
   assert.equal(ours.version, '1.2.3');
   assert.match(describeShimState(ours), /^shim \(model router\) on :\d+: running-ours \(serving 1\.2\.3\)$/);
@@ -124,15 +124,15 @@ test('the shared shim probe names each of its four states', async () => {
   assert.equal(unversioned.state, 'running-ours', 'our control endpoint answering outranks an ownership probe that timed out');
   assert.match(describeShimState(unversioned), /running-ours \(serving version unavailable\)$/);
 
-  const foreign = await probeWith({ owner: { state: 'foreign-install', pid: 702, installRoot: '/foreign/model-gateway' }, health: { ok: true, version: '9.9.9' } });
-  assert.deepEqual([foreign.state, foreign.pid, foreign.image], ['running-foreign', 702, '/foreign/model-gateway']);
-  assert.match(describeShimState(foreign), /running-foreign \(PID 702, \/foreign\/model-gateway\)$/);
+  const foreign = await probeWith({ owner: { state: 'foreign-install', pid: 702, installRoot: '/foreign/code-team' }, health: { ok: true, version: '9.9.9' } });
+  assert.deepEqual([foreign.state, foreign.pid, foreign.image], ['running-foreign', 702, '/foreign/code-team']);
+  assert.match(describeShimState(foreign), /running-foreign \(PID 702, \/foreign\/code-team\)$/);
 
   const unidentified = await probeWith({ owner: { state: 'unknown', pid: 703, reason: 'unreadable-command' } });
   assert.equal(unidentified.state, 'running-foreign');
   assert.match(describeShimState(unidentified), /running-foreign \(PID 703, owner unidentified: unreadable-command\)$/);
 
-  const bound = await probeWith({ owner: { state: 'same-install', pid: 801, installRoot: '/cache/model-gateway/1.0.0' }, record: { pid: 801, startedAt: '2026-09-28T10:00:00Z' } });
+  const bound = await probeWith({ owner: { state: 'same-install', pid: 801, installRoot: '/cache/code-team/1.0.0' }, record: { pid: 801, startedAt: '2026-09-28T10:00:00Z' } });
   assert.deepEqual([bound.state, bound.pid, bound.since], ['starting', 801, '2026-09-28T10:00:00Z']);
   assert.match(describeShimState(bound), /starting \(PID 801 since 2026-09-28T10:00:00Z\)$/);
 
@@ -262,7 +262,7 @@ test('a refused stop and a failed start both report why', async () => {
   assert.deepEqual([slow.started, slow.waitCutShort], [['shim'], true]);
 
   const missingProxy = startHarness([stopped], { proxyExists: () => false });
-  assert.deepEqual(await missingProxy.run(), { ok: false, reason: 'proxy binary missing (run setup)' });
+  assert.deepEqual(await missingProxy.run(), { ok: false, reason: 'proxy binary missing and nothing else is connected (run /connect, or setup for ChatGPT/Codex)' });
 });
 
 test('setup judges the supervisor stop by whether its PID is gone, not by the kill exit code (GH-371)', () => {
@@ -378,7 +378,7 @@ test('ensure refuses a foreign or unidentified listener without touching it', as
 });
 
 test('status, doctor and ensure print the same shim state line (#275)', (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-shim-state-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-shim-state-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const home = path.join(root, 'home');
   fs.mkdirSync(home, { recursive: true });

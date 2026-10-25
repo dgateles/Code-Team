@@ -19,7 +19,7 @@ const {
   resolvePortOwner,
 } = require(modulePath);
 
-const englishCommand = '/tmp/模型/.claude/plugins/cache/example/model-gateway/9.9.9/bin/model-gateway.js serve';
+const englishCommand = '/tmp/模型/.claude/plugins/cache/example/code-team/9.9.9/bin/code-team.js serve';
 const englishOutput = '95299     1 Wed Sep  9 23:24:12 2026 ' + englishCommand;
 const frenchOutput = '95299     1 mer.  9 sept. 23:24:12 2026 ' + englishCommand;
 const tableOutput = englishOutput + '\\n1     0 Wed Sep  9 10:00:00 2026 /sbin/launchd';
@@ -40,19 +40,19 @@ const englishProcess = await processInfoAsync(95299, { commandResult: processFro
 const frenchProcess = await processInfoAsync(95299, { commandResult: processFrom(frenchOutput) });
 const malformedProcess = await processInfoAsync(95299, { commandResult: processFrom('ps: localized failure') });
 const table = await processTableAsync({ commandResult: processFrom(tableOutput) });
-const sameInstallOwner = await resolvePortOwner(18764, {
+const sameInstallOwner = await resolvePortOwner(18774, {
   belongsToThisInstall: () => true,
   inspectProcess: async () => englishProcess,
   listening: async () => true,
   owner: async () => 95299,
 });
-const foreignOwner = await resolvePortOwner(18764, {
+const foreignOwner = await resolvePortOwner(18774, {
   belongsToThisInstall: () => false,
   inspectProcess: async () => englishProcess,
   listening: async () => true,
   owner: async () => 95299,
 });
-const unknownOwner = await resolvePortOwner(18764, {
+const unknownOwner = await resolvePortOwner(18774, {
   inspectProcess: async () => frenchProcess,
   listening: async () => true,
   owner: async () => 95299,
@@ -111,7 +111,7 @@ test('POSIX process probes pin C while parser and ownership fixtures retain thei
   assertProbeEnvironment(fixture.asyncEnvironment, 'C');
   assert.equal(fixture.parentEnvironmentUnchanged, true);
   assert.deepEqual({ ...process.env }, parentEnvironmentBefore);
-  assert.equal(fixture.englishCommand, '/tmp/模型/.claude/plugins/cache/example/model-gateway/9.9.9/bin/model-gateway.js serve');
+  assert.equal(fixture.englishCommand, '/tmp/模型/.claude/plugins/cache/example/code-team/9.9.9/bin/code-team.js serve');
   assert.equal(fixture.englishProcess.command, fixture.englishCommand);
   assert.equal(fixture.englishProcess.startedAt, 'Wed Sep  9 23:24:12 2026');
   assert.equal(fixture.frenchProcess, null);
@@ -142,24 +142,24 @@ Object.defineProperty(process, 'platform', { value: 'win32', configurable: true 
 const { listeningPidsFromNetstat, processOwningPortAsync, resolvePortOwner } = require(modulePath);
 const rows = (state, pid) => [
   '  TCP    0.0.0.0:135            0.0.0.0:0              ' + state + '         1204',
-  '  TCP    127.0.0.1:18764        0.0.0.0:0              ' + state + '         ' + pid,
-  '  TCP    127.0.0.1:18764        127.0.0.1:50123        ESTABLISHED     ' + pid,
-  '  TCP    127.0.0.1:50123        127.0.0.1:18764        ESTABLISHED     4400',
-  '  TCP    [::]:18764             [::]:0                 ' + state + '         ' + pid,
+  '  TCP    127.0.0.1:18774        0.0.0.0:0              ' + state + '         ' + pid,
+  '  TCP    127.0.0.1:18774        127.0.0.1:50123        ESTABLISHED     ' + pid,
+  '  TCP    127.0.0.1:50123        127.0.0.1:18774        ESTABLISHED     4400',
+  '  TCP    [::]:18774             [::]:0                 ' + state + '         ' + pid,
 ].join('\\r\\n');
 const german = 'Aktive Verbindungen\\r\\n\\r\\n  Proto  Lokale Adresse         Remoteadresse          Status           PID\\r\\n' + rows('ABHÖREN', 19252);
 const french = 'Connexions actives\\r\\n\\r\\n  Proto  Adresse locale         Adresse distante       État            PID\\r\\n' + rows("À L'ÉCOUTE", 19253);
 const english = rows('LISTENING', 19254);
 const netstatOutput = (output) => async () => ({ status: 0, stdout: output, stderr: '', timedOut: false });
-const cacheCommand = 'node C:/Users/example/.claude/plugins/cache/eigenwise-toolshed/model-gateway/0.50.5/bin/model-gateway.js serve-shim';
+const cacheCommand = 'node C:/Users/example/.claude/plugins/cache/eigenwise-toolshed/code-team/0.50.5/bin/code-team.js serve-shim';
 process.stdout.write(JSON.stringify({
-  germanPids: listeningPidsFromNetstat(german, 18764),
-  frenchPids: listeningPidsFromNetstat(french, 18764),
-  englishPids: listeningPidsFromNetstat(english, 18764),
+  germanPids: listeningPidsFromNetstat(german, 18774),
+  frenchPids: listeningPidsFromNetstat(french, 18774),
+  englishPids: listeningPidsFromNetstat(english, 18774),
   otherPortPids: listeningPidsFromNetstat(german, 1876),
-  germanOwner: await processOwningPortAsync(18764, { commandResult: netstatOutput(german) }),
-  frenchOwner: await processOwningPortAsync(18764, { commandResult: netstatOutput(french) }),
-  resolvedGermanOwner: await resolvePortOwner(18764, {
+  germanOwner: await processOwningPortAsync(18774, { commandResult: netstatOutput(german) }),
+  frenchOwner: await processOwningPortAsync(18774, { commandResult: netstatOutput(french) }),
+  resolvedGermanOwner: await resolvePortOwner(18774, {
     owner: (port, options) => processOwningPortAsync(port, { ...options, commandResult: netstatOutput(german) }),
     inspectProcess: async (pid) => ({ pid, command: cacheCommand, parentPid: 1, startedAt: null }),
     belongsToThisInstall: () => true,

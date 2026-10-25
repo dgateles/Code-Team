@@ -11,7 +11,7 @@ async function runCommand(command) {
 
 if (require.main === module) {
   runCommand(process.argv[2]).catch((error) => {
-    console.error('model-gateway: ' + error.message);
+    console.error('code-team: ' + error.message);
     process.exitCode = 1;
   });
 } else {

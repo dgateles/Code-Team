@@ -14,7 +14,7 @@ const version = require('../.claude-plugin/plugin.json').version;
 
 async function gateFixture(context) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-fast-path-'));
-  const state = path.join(home, '.claude', 'model-gateway');
+  const state = path.join(home, '.claude', 'code-team');
   fs.mkdirSync(state, { recursive: true });
   context.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const server = http.createServer((request, response) => response.end(JSON.stringify(server.health)));
@@ -23,10 +23,10 @@ async function gateFixture(context) {
   await once(server, 'listening');
   context.after(() => server.close());
   fs.writeFileSync(path.join(state, 'guardian.pid'), String(process.pid));
-  fs.writeFileSync(path.join(state, 'guardian.pid.json'), JSON.stringify({ pid: process.pid, command: `node "${path.join(install, 'bin', 'model-gateway.js')}" serve-shim` }));
+  fs.writeFileSync(path.join(state, 'guardian.pid.json'), JSON.stringify({ pid: process.pid, command: `node "${path.join(install, 'bin', 'code-team.js')}" serve-shim` }));
   const registry = path.join(home, '.claude', 'plugins', 'installed_plugins.json');
   fs.mkdirSync(path.dirname(registry), { recursive: true });
-  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'model-gateway@test': [{ version, installPath: install }] } }));
+  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'code-team@test': [{ version, installPath: install }] } }));
   const launcher = writeCommandLauncher({ home }).file;
   const preload = path.join(home, 'observe-cli.js');
   fs.writeFileSync(preload, `
@@ -95,7 +95,7 @@ test('intentional stop and foreign PID record fall through even with healthy HTT
   assert.equal(stopped.status, 1, stopped.stderr);
   assert.match(stopped.stderr, /RECOVERY_CLI_LOADED/);
   fs.rmSync(path.join(fixture.state, 'intentionally-stopped.json'));
-  fs.writeFileSync(path.join(fixture.state, 'guardian.pid.json'), JSON.stringify({ pid: process.pid, command: 'node /foreign/bin/model-gateway.js serve-shim' }));
+  fs.writeFileSync(path.join(fixture.state, 'guardian.pid.json'), JSON.stringify({ pid: process.pid, command: 'node /foreign/bin/code-team.js serve-shim' }));
   const foreign = await invoke(fixture, 'UserPromptSubmit');
   assert.equal(foreign.status, 2, foreign.stderr);
   assert.match(foreign.stderr, /RECOVERY_CLI_LOADED/);

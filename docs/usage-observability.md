@@ -4,7 +4,7 @@
 
 The gateway is the primary token-usage producer. It emits one counts-only `gateway.token.usage` OTLP log after each successful proxied `/v1/messages` response. Throttled or failed responses with useful limit headers emit a counts-only `gateway.limit.signal` record instead. The existing loopback Collector and Observability observer ingest those records. Claude Code telemetry remains useful for productivity and UX events, but the resolved usage views prefer gateway evidence.
 
-The emitter stays inside model-gateway as one small module. Observability owns the canonical schema, resolved views, reports, and dashboard queries.
+The emitter stays inside code-team as one small module. Observability owns the canonical schema, resolved views, reports, and dashboard queries.
 
 ## Options considered
 
@@ -14,11 +14,11 @@ This already has broad client lifecycle coverage, but it reports the virtual `cl
 
 ### Direct Observability observation POSTs
 
-Posting canonical observations to `/v1/observations` would make database ingestion simple. It would couple model-gateway to Observability's private schema and bypass the OTLP path already used for gateway routing evidence.
+Posting canonical observations to `/v1/observations` would make database ingestion simple. It would couple code-team to Observability's private schema and bypass the OTLP path already used for gateway routing evidence.
 
 ### Counts-only OTLP log from the gateway
 
-This uses the existing local transport, keeps model-gateway independent of the observer database, preserves one authoritative response record, and can carry request, session, and agent IDs as first-class columns. This is the selected option.
+This uses the existing local transport, keeps code-team independent of the observer database, preserves one authoritative response record, and can carry request, session, and agent IDs as first-class columns. This is the selected option.
 
 ## Emit path
 
@@ -135,4 +135,4 @@ Two Claude Code checks bypass the configured base URL and remain unmetered: fast
 - Gateway integration tests drive JSON and SSE responses through an isolated shim and fake upstream.
 - An isolated Observability observer receives the gateway record. Its request, session, agent, and composition views must match the raw response usage exactly for exact fields.
 - A collector that deliberately delays its OTLP response must not delay the proxied response.
-- Full gateway tests run with `npm test` from `plugins/model-gateway` (the script preloads `test/isolate-home.js`, which moves HOME to a throwaway directory; a bare `node --test` skips that guard and fails the settings-write-guard tests); Observability tests run with explicit Windows-safe globs.
+- Full gateway tests run with `npm test` from `plugins/code-team` (the script preloads `test/isolate-home.js`, which moves HOME to a throwaway directory; a bare `node --test` skips that guard and fails the settings-write-guard tests); Observability tests run with explicit Windows-safe globs.

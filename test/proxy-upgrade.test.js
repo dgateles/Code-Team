@@ -12,7 +12,7 @@ const commands = require('../lib/commands.js');
 const writer = require('../hooks/registry-writer.js');
 
 function temporaryDirectory(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-proxy-upgrade-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-proxy-upgrade-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
@@ -116,12 +116,12 @@ test('matching serving and on-disk proxy versions do nothing', async () => {
 test('stable command launcher follows registry changes and forwards command exits', (t) => {
   const home = temporaryDirectory(t);
   const registryDirectory = path.join(home, '.claude', 'plugins');
-  const oldInstall = path.join(home, 'model-gateway-0.1.9');
-  const newInstall = path.join(home, 'model-gateway-0.1.10');
+  const oldInstall = path.join(home, 'code-team-0.1.9');
+  const newInstall = path.join(home, 'code-team-0.1.10');
   const result = path.join(home, 'result.json');
   for (const install of [oldInstall, newInstall]) {
     fs.mkdirSync(path.join(install, 'bin'), { recursive: true });
-    fs.writeFileSync(path.join(install, 'bin', 'model-gateway.js'), [
+    fs.writeFileSync(path.join(install, 'bin', 'code-team.js'), [
       "const fs = require('node:fs');",
       "fs.writeFileSync(process.env.MODEL_GATEWAY_TEST_RESULT, JSON.stringify([process.argv[1], ...process.argv.slice(2)]));",
       'process.exit(Number(process.env.MODEL_GATEWAY_TEST_EXIT));',
@@ -131,7 +131,7 @@ test('stable command launcher follows registry changes and forwards command exit
   const registry = path.join(registryDirectory, 'installed_plugins.json');
   fs.writeFileSync(registry, JSON.stringify({
     plugins: {
-      'model-gateway@eigenwise-toolshed': [
+      'code-team@eigenwise-toolshed': [
         { version: '0.1.9', installPath: oldInstall },
         { version: '0.1.10', installPath: newInstall },
       ],
@@ -147,7 +147,7 @@ test('stable command launcher follows registry changes and forwards command exit
   });
 
   assert.equal(update.status, 11, update.stderr);
-  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(newInstall, 'bin', 'model-gateway.js'), 'setup', '--preserve-wiring']);
+  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(newInstall, 'bin', 'code-team.js'), 'setup', '--preserve-wiring']);
 
   const newer = spawnGatewayProcessSync(process.execPath, [launcher, 'status', '--json'], {
     encoding: 'utf8',
@@ -155,10 +155,10 @@ test('stable command launcher follows registry changes and forwards command exit
   });
 
   assert.equal(newer.status, 17, newer.stderr);
-  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(newInstall, 'bin', 'model-gateway.js'), 'status', '--json']);
+  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(newInstall, 'bin', 'code-team.js'), 'status', '--json']);
 
   fs.writeFileSync(registry, JSON.stringify({
-    plugins: { 'model-gateway@eigenwise-toolshed': [{ version: '0.1.9', installPath: oldInstall }] },
+    plugins: { 'code-team@eigenwise-toolshed': [{ version: '0.1.9', installPath: oldInstall }] },
   }));
   const downgraded = spawnGatewayProcessSync(process.execPath, [launcher, 'doctor'], {
     encoding: 'utf8',
@@ -166,29 +166,29 @@ test('stable command launcher follows registry changes and forwards command exit
   });
 
   assert.equal(downgraded.status, 23, downgraded.stderr);
-  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(oldInstall, 'bin', 'model-gateway.js'), 'doctor']);
+  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(oldInstall, 'bin', 'code-team.js'), 'doctor']);
 
-  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'model-gateway@eigenwise-toolshed': [] } }));
+  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'code-team@eigenwise-toolshed': [] } }));
   const missing = spawnGatewayProcessSync(process.execPath, [launcher, 'status'], { encoding: 'utf8', env });
 
   assert.equal(missing.status, 1);
-  assert.match(missing.stderr, /no installed Model Gateway CLI was found in Claude Code's plugin registry/);
+  assert.match(missing.stderr, /no installed Code Team CLI was found in Claude Code's plugin registry/);
 });
 
 function writeForkRegistry(home, installs) {
   const registryDirectory = path.join(home, '.claude', 'plugins');
   fs.mkdirSync(registryDirectory, { recursive: true });
   fs.writeFileSync(path.join(registryDirectory, 'installed_plugins.json'), JSON.stringify({
-    plugins: { 'model-gateway@fork-toolshed': installs },
+    plugins: { 'code-team@fork-toolshed': installs },
   }));
 }
 
-test('GH-380: stable command launcher finds a model-gateway installed from another marketplace', (t) => {
+test('GH-380: stable command launcher finds a code-team installed from another marketplace', (t) => {
   const home = temporaryDirectory(t);
-  const install = path.join(home, 'model-gateway-fork');
+  const install = path.join(home, 'code-team-fork');
   const result = path.join(home, 'result.json');
   fs.mkdirSync(path.join(install, 'bin'), { recursive: true });
-  fs.writeFileSync(path.join(install, 'bin', 'model-gateway.js'),
+  fs.writeFileSync(path.join(install, 'bin', 'code-team.js'),
     "require('node:fs').writeFileSync(process.env.MODEL_GATEWAY_TEST_RESULT, JSON.stringify(process.argv.slice(1)));");
   writeForkRegistry(home, [{ scope: 'user', version: '0.1.0', installPath: install }]);
   const launcher = writer.writeCommandLauncher({ home }).file;
@@ -199,10 +199,10 @@ test('GH-380: stable command launcher finds a model-gateway installed from anoth
   });
 
   assert.equal(run.status, 0, run.stderr);
-  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(install, 'bin', 'model-gateway.js'), 'doctor']);
+  assert.deepEqual(JSON.parse(fs.readFileSync(result, 'utf8')), [path.join(install, 'bin', 'code-team.js'), 'doctor']);
 });
 
-test('GH-380: installScope reads a model-gateway installed from another marketplace', (t) => {
+test('GH-380: installScope reads a code-team installed from another marketplace', (t) => {
   const home = temporaryDirectory(t);
   assert.equal(commands.installScope(home), 'unknown');
   writeForkRegistry(home, []);

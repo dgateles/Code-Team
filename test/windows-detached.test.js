@@ -25,7 +25,7 @@ test('Windows detached service survives KILL_ON_JOB_CLOSE on the caller job; ord
     const fs = require('node:fs');
     const { spawn } = require('node:child_process');
     const { spawnDetached } = require(${JSON.stringify(require.resolve('../lib/process-supervision.js'))});
-    fs.mkdirSync(${JSON.stringify(path.join(directory, '.claude', 'model-gateway', 'logs'))}, {recursive:true});
+    fs.mkdirSync(${JSON.stringify(path.join(directory, '.claude', 'code-team', 'logs'))}, {recursive:true});
     const control = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], {detached:true,stdio:'ignore',windowsHide:true});
     control.unref();
     const service = spawnDetached('guardian', process.execPath, ['-e', ${JSON.stringify(serviceCode)}], {GATEWAY_SENTINEL:'preserved-é'});
@@ -84,12 +84,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Fixture failed' }
   for (let attempt = 0; attempt < 40 && alive(pids.control); attempt++) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(alive(pids.control), false, 'negative control must die with the caller job');
   assert.equal(alive(pids.service), true, 'gateway launch must survive caller job termination');
-  const actualLog = path.join(directory, '.claude', 'model-gateway', 'logs', 'guardian.log');
+  const actualLog = path.join(directory, '.claude', 'code-team', 'logs', 'guardian.log');
   for (let attempt = 0; attempt < 40 && !fs.readFileSync(actualLog, 'utf8').includes('stderr works'); attempt++) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.match(fs.readFileSync(actualLog, 'utf8'), /preserved-é/);
   assert.match(fs.readFileSync(actualLog, 'utf8'), /stderr works/);
-  assert.equal(Number(fs.readFileSync(path.join(directory, '.claude', 'model-gateway', 'guardian.pid'), 'utf8')), pids.service);
-  assert.deepEqual(fs.readdirSync(path.join(directory, '.claude', 'model-gateway')).filter((name) => name.startsWith('launch-')), []);
+  assert.equal(Number(fs.readFileSync(path.join(directory, '.claude', 'code-team', 'guardian.pid'), 'utf8')), pids.service);
+  assert.deepEqual(fs.readdirSync(path.join(directory, '.claude', 'code-team')).filter((name) => name.startsWith('launch-')), []);
 });
 
 test('Windows detached launch reports invalid executables without a success PID', { skip: !windows, timeout: 20000 }, (t) => {

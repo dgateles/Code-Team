@@ -12,7 +12,7 @@ const root = path.resolve(__dirname, '..');
 const writer = require('../hooks/registry-writer.js');
 
 function home(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-registry-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-registry-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
@@ -25,16 +25,16 @@ test('writes an atomic Codex Gateway registry breadcrumb', (t) => {
   assert.equal(result.written, true);
   assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), {
     schemaVersion: 1,
-    name: 'model-gateway',
+    name: 'code-team',
     version: '1.2.3',
     root,
     capabilities: ['model-catalog'],
     catalog: {
-      path: path.join(directory, '.claude', 'model-gateway', 'catalog.json'),
+      path: path.join(directory, '.claude', 'code-team', 'catalog.json'),
       schemaVersion: 4,
     },
   });
-  assert.deepEqual(fs.readdirSync(path.dirname(file)), ['model-gateway.json']);
+  assert.deepEqual(fs.readdirSync(path.dirname(file)), ['code-team.json']);
 });
 
 test('preserves a future Codex Gateway registry schema', (t) => {

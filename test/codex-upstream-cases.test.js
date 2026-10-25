@@ -204,7 +204,7 @@ test('#192: a stream that finished its turn but lost message_stop is closed for 
 
 test('#238: /v1/models refreshes on a timer and a burst of 50 never triggers a refresh or waits on file writes', async (t) => {
   const environment = gatewayTestEnvironment(t, { CODEX_GATEWAY_MODELS_REFRESH_MS: '150' });
-  const modelsFile = path.join(environment.HOME, '.claude', 'model-gateway', 'models.json');
+  const modelsFile = path.join(environment.HOME, '.claude', 'code-team', 'models.json');
   const { port, proxy } = await workerBehind(t, (res) => { res.writeHead(500); res.end(); }, environment, { modelsStatus: 500 });
   await sleep(800);
   assert.ok(proxy.modelsFetches >= 3, `the snapshot refreshed ${proxy.modelsFetches} time(s) with no request asking`);
@@ -234,7 +234,7 @@ test('#238: /v1/models refreshes on a timer and a burst of 50 never triggers a r
 test('#238 #367: a 5 s proxy auth status stalls neither /healthz nor /v1/models, and concurrent probes share one check', async (t) => {
   const environment = gatewayTestEnvironment(t);
   const home = environment.HOME;
-  const bin = path.join(home, '.claude', 'model-gateway', 'bin');
+  const bin = path.join(home, '.claude', 'code-team', 'bin');
   fs.mkdirSync(bin, { recursive: true });
   const fakeProxy = path.join(bin, process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
   try { fs.linkSync(process.execPath, fakeProxy); } catch { fs.copyFileSync(process.execPath, fakeProxy); }

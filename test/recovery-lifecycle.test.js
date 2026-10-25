@@ -91,12 +91,12 @@ test('installed prompt gate leaves a foreign listener untouched and reports loca
     CODEX_GATEWAY_PORT: String(port), CODEX_GATEWAY_PROXY_PORT: String(await freePort()),
   });
   delete environment.CODEX_GATEWAY_WORKER_PORT;
-  const state = path.join(environment.HOME, '.claude', 'model-gateway');
+  const state = path.join(environment.HOME, '.claude', 'code-team');
   fs.mkdirSync(path.join(state, 'bin'), { recursive: true });
   fs.copyFileSync(process.execPath, path.join(state, 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy'));
   const registry = path.join(environment.HOME, '.claude', 'plugins', 'installed_plugins.json');
   fs.mkdirSync(path.dirname(registry), { recursive: true });
-  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'model-gateway@fixture': [{ version: '1.0.0', installPath: path.resolve(__dirname, '..') }] } }));
+  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'code-team@fixture': [{ version: '1.0.0', installPath: path.resolve(__dirname, '..') }] } }));
   const launcher = writeCommandLauncher({ home: environment.HOME }).file;
   const refused = await invoke(testContext, environment, launcher, 'readiness-gate');
   assert.equal(refused.status, 2, refused.output);
@@ -125,7 +125,7 @@ test('installed gates recover stale boot state once, preserve streaming, recover
     ANTHROPIC_BASE_URL: `http://127.0.0.1:${shimPort}`, CODEX_GATEWAY_REQUEST_LOG: '0',
   }, { CODEX_GATEWAY_PORT: String(shimPort), CODEX_GATEWAY_PROXY_PORT: String(proxy.address().port) });
   delete environment.CODEX_GATEWAY_WORKER_PORT;
-  const state = path.join(environment.HOME, '.claude', 'model-gateway');
+  const state = path.join(environment.HOME, '.claude', 'code-team');
   assert.equal(fs.existsSync(state), false, 'recovery fixture starts with an empty gateway state');
   fs.mkdirSync(path.join(state, 'bin'), { recursive: true });
   const binary = path.join(state, 'bin', process.platform === 'win32' ? 'claude-code-proxy.exe' : 'claude-code-proxy');
@@ -136,7 +136,7 @@ test('installed gates recover stale boot state once, preserve streaming, recover
   environment.NODE_OPTIONS = `${environment.NODE_OPTIONS || ''} --require=${JSON.stringify(authentication)}`;
   const registry = path.join(environment.HOME, '.claude', 'plugins', 'installed_plugins.json');
   fs.mkdirSync(path.dirname(registry), { recursive: true });
-  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'model-gateway@fixture': [{ version: '1.0.0', installPath: path.resolve(__dirname, '..') }] } }));
+  fs.writeFileSync(registry, JSON.stringify({ plugins: { 'code-team@fixture': [{ version: '1.0.0', installPath: path.resolve(__dirname, '..') }] } }));
   const launcher = writeCommandLauncher({ home: environment.HOME }).file;
   fs.writeFileSync(path.join(state, 'guardian.pid'), '2147483647');
   fs.writeFileSync(path.join(state, 'shim-supervisor-failure.txt'), JSON.stringify({ supervisorPid: 2147483647, generation: 'old-boot', message: 'old failure' }));

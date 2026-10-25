@@ -16,7 +16,7 @@ function insideTmp(file) {
 
 // A path that is outside the temp directory on every machine, whatever directory
 // the checkout lives in (a checkout under os.tmpdir() would make __dirname useless here).
-const OUTSIDE_TMP = path.join(path.parse(os.tmpdir()).root, 'model-gateway-must-never-be-written');
+const OUTSIDE_TMP = path.join(path.parse(os.tmpdir()).root, 'code-team-must-never-be-written');
 
 test('the suite runs against a throwaway home, never the real one', () => {
   assert.ok(insideTmp(os.homedir()), `HOME is ${os.homedir()}, expected a temp dir; run the suite with npm test`);
@@ -46,7 +46,7 @@ test('a settings write outside the temp directory is refused under the test runn
 });
 
 test('a settings write inside the temp directory still goes through', (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-guard-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-guard-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const file = path.join(directory, '.claude', 'settings.json');
   writeSettings(file, { env: { OK: '1' } });
@@ -79,7 +79,7 @@ test('the alias probe resolves null without spawning when no fake claude is name
 // probeClaudeAlias() still spawned, the fake binary would leave a marker file behind.
 test('neither probe launches the claude on PATH under the test runner', (t) => {
   if (process.platform === 'win32') return t.skip('the fake claude is a POSIX shell script');
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-guard-probe-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-guard-probe-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const marker = path.join(directory, 'claude-was-launched');
   const fakeClaude = path.join(directory, 'bin', 'claude');
@@ -103,7 +103,7 @@ test('neither probe launches the claude on PATH under the test runner', (t) => {
 
 test('a temp path that symlinks out of the temp directory is refused', (t) => {
   if (process.platform === 'win32') return t.skip('directory symlinks need privileges on Windows');
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'model-gateway-guard-link-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'code-team-guard-link-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   // The filesystem root is the one directory that exists and is outside the temp
   // directory on every machine; __dirname can itself sit under os.tmpdir().
