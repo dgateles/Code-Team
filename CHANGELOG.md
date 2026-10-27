@@ -4,6 +4,19 @@ Code Team is a fork of Model Gateway 0.55.3 by Eigenwise (MIT). For the history
 before the fork, see the upstream changelog:
 https://github.com/Eigenwise/eigenwise-toolshed/blob/main/plugins/model-gateway/CHANGELOG.md
 
+## 0.1.2
+
+### Added
+
+- Connected models can run as subagents. The Agent tool's `model` option is a
+  fixed host enum (`sonnet`/`opus`/`haiku`/`fable`), so `setup`, `ensure` and
+  every connect now write one agent definition per gateway model into
+  `~/.claude/agents/` with the full model id in its `model:` frontmatter
+  (`claude-gpt-5.6-terra[1m]` becomes `subagent_type: "gpt-5-6-terra"`).
+  `status` lists them; definitions of models that leave the list are removed,
+  and user files in that folder are never touched. Verified end to end on
+  Claude Code 2.1.311: the subagent request leaves with the definition's model.
+
 ## 0.1.1
 
 Fixes from the first ChatGPT and Antigravity connections on Linux (CachyOS,

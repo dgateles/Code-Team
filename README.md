@@ -111,6 +111,15 @@ When a provider rejects a request because its quota or balance is used up, Code 
 
 A short 429 that is ordinary throttling (a few seconds' wait and no quota wording) is passed through, and Claude Code retries it as usual.
 
+## Connected models as subagents
+
+The Agent tool's `model` option only accepts Claude Code's own aliases (`sonnet`, `opus`, `haiku`, `fable`), so a connected model cannot be named there. Code Team therefore writes an agent definition per connected model into `~/.claude/agents/` whenever it refreshes the model list (`setup`, `ensure`, every connect). Each one carries the full model id in its `model:` frontmatter, which is the route Claude Code does honor:
+
+- Ask Claude to "review this with GPT-5.6 Terra" or "run the tests on Grok": it dispatches `subagent_type: "gpt-5-6-terra"` or `"grok-4-5"` with no `model` argument. The name is the `/model` id without `claude-` and `[1m]`, dots turned into dashes.
+- `node ~/.claude/plugins/.../bin/code-team.js status` lists the definitions it wrote. Claude Code reads them at session start, so open a new session after the first connect.
+- A subagent with no model and no definition inherits the session's model, so a session already switched to a connected model dispatches to it as it is.
+- Disconnecting a provider removes its definitions. Only files that carry the `code-team-gateway-agent` marker are touched; your own agents in that folder, even with the same name, are left alone.
+
 ## Advanced: providers.json
 
 The registry is `~/.claude/code-team/providers.json`, a JSON array. The CLI writes it atomically, readable only by you. You can also edit it by hand. The gateway picks up changes on its next model refresh, and right away when Claude Code asks for `/v1/models`.

@@ -192,32 +192,26 @@ bring auth back, or you kill the session that was about to use it.
   verified here. This is version-specific and can be revisited if a future Desktop release removes
   the model-family filter.
 - **RC-compat and missing Codex rows**: On inspected Claude Code 2.1.267, RC-compatibility points `ANTHROPIC_BASE_URL` at `api.anthropic.com`, which disables gateway model discovery. The rows disappear and cache refresh cannot restore them. Claude Code can accept and persist `/model claude-gpt-5.6-terra[1m]`, but that client-side action does not prove a later request reaches the gateway. The current cleaner preserves canonical `[1m]` ids; do not present it as a fix for a reported request error. RC-compatibility makes Claude Code treat the gateway as first-party and can enable experimental message threading. The shim refuses Codex/Grok thread continuations locally with HTTP 400 because those backends have no conversation state. Nothing is forwarded or rerouted. A recognizing client drops the threading beta and resends the full message history. This is version- and experiment-limited, so do not promise one refusal per session. Normal gateway mode is the verified inference path. The reported 2.1.259 client and inspected 2.1.267 client have no verified end-to-end RC result: inspected session creation uses HTTPS while compatibility transport is HTTP. A detected hosts entry or bound listener proves local HTTP transport only. Sidequest dispatch is unaffected because it resolves its explicit route marker and never uses picker discovery.
-- Claude models keep working normally at the same time (passthrough path). That does not mean a
-  subagent invocation can mix in a gateway id freely: the `Agent` tool's own `model` parameter is a
-  fixed host enum (`sonnet`/`opus`/`haiku`/`fable`), independent of gateway or plugin state, and a
-  gateway id passed there is refused. To route one subagent to a specific gateway model, give it a
-  definition file instead, with a full gateway id in `model:` frontmatter, and omit `model` from the
-  invocation so that frontmatter applies:
-
-  ```markdown
-  ---
-  name: luna-reviewer
-  description: Reviews code changes using the GPT-5.6 Luna gateway model.
-  model: claude-gpt-5.6-luna[1m]
-  tools: Read, Grep, Glob
-  ---
-
-  Review the diff for correctness and report findings.
-  ```
-
-  Save that as `.claude/agents/luna-reviewer.md` and start a new session before invoking it —
-  definitions are read at session start, so a running session won't see one just added. Invoke with
-  `subagent_type: "luna-reviewer"` and no `model` argument. This needs only Code Team, not
-  Sidequest: a concrete gateway id needs no route marker, only Sidequest's own `claude-codex-auto` id
-  does. Never edit Claude Code's built-in model aliases, the `Agent` tool schema, or the host binary —
-  none of that is supported or necessary. This frontmatter contract and Code Team's routing for a
-  concrete id are confirmed; an end-to-end custom-agent spawn through this path has not been verified
-  here.
+- **Gateway models as subagents**: Claude models keep working normally at the same time (passthrough
+  path). That does not mean a subagent invocation can mix in a gateway id freely: the `Agent` tool's
+  own `model` parameter is a fixed host enum (`sonnet`/`opus`/`haiku`/`fable`), independent of
+  gateway or plugin state, and a gateway id passed there is refused. The supported route is an agent
+  definition whose `model:` frontmatter names the full gateway id, invoked by `subagent_type` with
+  no `model` argument. Code Team writes one such definition per advertised gateway model into
+  `~/.claude/agents/` (`<CLAUDE_CONFIG_DIR>/agents`) on every `setup`, `ensure` and `connect`, named
+  after the id without the `claude-` prefix and `[1m]` suffix, with dots turned into dashes:
+  `claude-gpt-5.6-terra[1m]` becomes `subagent_type: "gpt-5-6-terra"`, `claude-grok-4.5[1m]` becomes
+  `grok-4-5`. `status` lists them. So when the user asks to run or review something with a connected
+  model, call `Agent` with that `subagent_type` and omit `model`; a subagent with no `model` and no
+  definition inherits the session's current model, so a session already on a gateway model dispatches
+  to it without any of this. Definitions are read at session start: right after a `connect`, a new
+  session is needed before they appear, and `disconnect` removes the ones for models that left the
+  list. Only files carrying the `code-team-gateway-agent` marker are written or removed; a user agent
+  with the same name is left alone. The project must be wired, or the definition's model goes to
+  api.anthropic.com and fails. Never edit Claude Code's built-in model aliases, the `Agent` tool
+  schema, or the host binary. Verified end to end on Claude Code 2.1.311 against a recording
+  upstream: the subagent request left with the definition's model (`claude-gpt-5.6-terra`, the
+  client drops `[1m]`) while the parent stayed on its own model.
 - **Codex schema compatibility**: Codex rejects some Unicode property escapes such as `\p{Cc}` and `\P{Cf}`. After deferred hydration, the shim changes only a Codex-bound provider hint, never Claude Code's host schema or an Anthropic request. It admits a missing dialect or Draft 2020-12 and only `pattern` instances reached through `properties`, compatible `patternProperties` values, `additionalProperties`, `items`, `prefixItems`, `allOf`, `anyOf`, `dependentSchemas`, `propertyNames`, or `unevaluatedProperties`/`unevaluatedItems`. Each real property atom must stand alone in a negated character class without ranges, set syntax, captures, backreferences, or a negative regex context. The shim removes only that atom and preserves every other regex byte. `not`, conditionals, `oneOf`, `contains`, references, definitions, content schemas, affected pattern-property keys, unknown containers, and unsafe regexes refuse locally with HTTP 400 naming the tool, JSON Pointer, and reason code. Tell the user it was not forwarded or rerouted. Do not claim arbitrary schemas are preserved or try to bypass that diagnostic.
 
 ## Local gateway records
