@@ -16,6 +16,10 @@ process.env.CLAUDE_CONFIG_DIR = path.join(home, '.claude');
 // Never the real `claude`: a real Claude Code launched by a pin probe rewrote the
 // real settings file. Tests that want a Claude binary set their own fake one.
 process.env.CODEX_GATEWAY_CLAUDE_BIN = path.join(home, 'claude-is-not-installed-in-tests');
+// Run from inside a Claude Code session, the CLI reads the session's own environment for
+// ANTHROPIC_BASE_URL; tests describe a plain shell.
+delete process.env.CLAUDECODE;
+delete process.env.CLAUDE_PID;
 process.on('exit', () => {
   try { fs.rmSync(home, { recursive: true, force: true }); } catch {}
 });

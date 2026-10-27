@@ -94,8 +94,11 @@ node ~/.claude/code-team/code-team.js login    # browser OAuth; --device for hea
 node ~/.claude/code-team/code-team.js setup    # finishes the wiring
 ```
 
-`login` opens the user's browser; they complete it themselves (suggest `! node ... login` if it
-needs a real TTY). `env --write-project` writes this project's `.claude/settings.local.json`.
+`login` starts the browser sign-in detached, prints the link (also saved at
+`~/.claude/code-team/logs/login-url.txt`) and waits for it; `login --start` only prints the link,
+`login --wait` waits for a pending one, `login --reset` ends a stuck one and frees port 1455. Give the
+user the link right away: the browser does not open from every terminal. `upstream set <url>` chains
+another local proxy (Headroom) behind the gateway; `upstream show` prints the one in use. `env --write-project` writes this project's `.claude/settings.local.json`.
 Use `env --write-user` only when the user wants a shared fallback across projects. If both are
 present, project-local wiring wins: `doctor` marks it `[effective]`, names the shadowed user file,
 and fails when their gateway modes differ. All wiring changes apply to new Claude Code sessions,

@@ -165,8 +165,16 @@ An environment key only reaches the gateway if it was set when the gateway start
 
 Code Team has its own state directory (`~/.claude/code-team/`), ports (18774 for the gateway, 18775 for the Codex proxy, 18776 for its CLIProxyAPI), Windows pipe and launcher. It never stops processes it did not start. You can keep an installed Model Gateway: each project uses whichever gateway its `ANTHROPIC_BASE_URL` points at. Running a connect command in a project switches that project to Code Team. The upstream `CODEX_GATEWAY_*` environment variables still work, for example to change the ports.
 
+## Using Code Team with Headroom or another proxy
+
+A wrapper such as `headroom wrap claude` exports `ANTHROPIC_BASE_URL` into the Claude Code process. That variable beats every settings file, so a project wired by a connect command is silently bypassed; the connect commands and `doctor` now warn when they see it. Two ways out:
+
+- Start Claude Code with `claude` directly, without the wrapper.
+- Keep the other proxy in the chain, Claude Code -> Code Team -> other proxy -> Anthropic: run that proxy standalone, then `node ~/.claude/code-team/code-team.js upstream set http://localhost:8787` (its address). The setting is saved in `~/.claude/code-team/upstream.json`, the gateway restarts with it, and `status`, `doctor` and `upstream show` print the upstream in use. `upstream reset` returns to `https://api.anthropic.com`. The environment variable `CODEX_GATEWAY_ANTHROPIC_UPSTREAM` still overrides the saved value when set.
+
 ## Troubleshooting
 
+- **The ChatGPT sign-in link never showed, or "Failed to bind to port 1455".** `/connect-gpt` prints the sign-in link and returns at once (exit 4) when it has no terminal; the link is also saved at `~/.claude/code-team/logs/login-url.txt`. Open it, then run the command again to finish. A stuck sign-in holding port 1455 is ended by `node ~/.claude/code-team/code-team.js login --reset`.
 - **New models are missing from `/model`.** Fully restart Claude Code; `/reload-plugins` does not refresh the picker. Then run `/connect` and check that the gateway is running and the project is wired. Claude Code only shows gateway rows when the project's `ANTHROPIC_BASE_URL` points at the gateway.
 - **A provider row answers "is not answering at …".** That provider's endpoint is down or unreachable. For a local proxy, the error says whether an autostart was just tried; otherwise start it yourself or add `autostart`.
 - **"no API key for …".** The gateway cannot see the key. Set the variable named in the error and restart Claude Code, then run the connect command again so the gateway restarts with it.

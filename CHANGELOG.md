@@ -4,7 +4,39 @@ Code Team is a fork of Model Gateway 0.55.3 by Eigenwise (MIT). For the history
 before the fork, see the upstream changelog:
 https://github.com/Eigenwise/eigenwise-toolshed/blob/main/plugins/model-gateway/CHANGELOG.md
 
-## 0.1.0 (unreleased)
+## 0.1.1
+
+Fixes from the first ChatGPT and Antigravity connections on Linux (CachyOS,
+Claude Code opened through `headroom wrap claude`).
+
+### Fixed
+
+- `/connect-gpt` run from Claude's Bash tool never showed the ChatGPT sign-in
+  link until the OAuth timeout. The sign-in now runs detached: without a
+  terminal the command prints the link, saves it to `logs/login-url.txt` and
+  exits 4; the next run waits for the sign-in and wires the project. `login`
+  gained `--start`, `--wait` and `--reset`; a leftover proxy holding port 1455
+  is ended before a new sign-in, and a signal or timeout ends the pending one.
+- A process-env `ANTHROPIC_BASE_URL` (for example from `headroom wrap claude`)
+  silently bypassed the wiring. The connect commands now warn and say how to
+  restart; `upstream set|show|reset` persists another proxy as the Anthropic
+  upstream (`~/.claude/code-team/upstream.json`), shown by `status`, `doctor`
+  and `/healthz`, with the `CODEX_GATEWAY_ANTHROPIC_UPSTREAM` variable documented.
+- The gateway discovery cache (`~/.claude/cache/gateway-models.json`) was
+  skipped in silence when a connect ran under a wrapper that exports
+  `ANTHROPIC_BASE_URL`, so the first wired session showed no gateway rows in
+  `/model`. The cache now follows the wiring a settings file holds, and a skip
+  is logged.
+- `connect antigravity` declared the model list empty one second after the
+  sign-in, before CLIProxyAPI had loaded the credential it just wrote. The list
+  is retried up to 5 times, 1 s apart. Without a graphical session on Linux the
+  sign-in runs with `-no-browser` from the start.
+- `doctor` and the SessionStart notice read the Claude Code process's own
+  environment (via `CLAUDE_PID`) instead of the tool subprocess environment,
+  which Claude Code fills from the settings file, so "process env: wired" is no
+  longer a false positive inside a session.
+
+## 0.1.0
 
 First release as Code Team.
 
