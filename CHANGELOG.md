@@ -4,6 +4,20 @@ Code Team is a fork of Model Gateway 0.55.3 by Eigenwise (MIT). For the history
 before the fork, see the upstream changelog:
 https://github.com/Eigenwise/eigenwise-toolshed/blob/main/plugins/model-gateway/CHANGELOG.md
 
+## 0.1.3
+
+### Fixed
+
+- Antigravity: every model was refused as "out of quota" while the usage page
+  showed 100%. Stock CLIProxyAPI cools the whole credential after any 429, so
+  one weekly "Individual quota reached" on the Claude group made it answer
+  "cooling down" for every model for days, and Code Team recorded each as an
+  exhausted quota. The managed CLIProxyAPI config now sets
+  `routing.cooldown.disable-cooling: true` (one login has nothing to fail over
+  to; Google enforces each quota group itself). The quota classifier no longer
+  treats a proxy "cooling down" refusal or a 429 with a reset under a minute as
+  an exhausted quota, and `quota clear` without a session lifts every block.
+
 ## 0.1.2
 
 ### Added

@@ -76,6 +76,8 @@ How it connects:
 
 Code Team never reads or stores your Google tokens. They stay in CLIProxyAPI's own auth directory.
 
+The config Code Team writes turns CLIProxyAPI's credential cooldown off (`routing.cooldown.disable-cooling: true`). With one Google login there is nothing to fail over to, and the stock behaviour cools the whole credential after any 429: one "Individual quota reached" on the Claude weekly quota made every Antigravity model answer "cooling down" for days while the usage page showed 100% ([CLIProxyAPI#5843](https://github.com/router-for-me/CLIProxyAPI/issues/5843)). Google enforces each quota group itself, so requests go through and a model with quota left works. If you connected before this change, run `/connect-antigravity` again to rewrite the config, end the running `cli-proxy-api` process (the gateway starts it again on the next request), and run `quota clear` to lift any block recorded from the old behaviour. If you run your own CLIProxyAPI, set that option yourself.
+
 ## Custom provider
 
 Any endpoint where `POST <baseUrl>/v1/messages` speaks the Anthropic Messages format works. Ask Claude, or run the CLI yourself:
@@ -107,7 +109,8 @@ When a provider rejects a request because its quota or balance is used up, Code 
 - **Claude Code stops at once.** It shows "You've hit your usage limit · resets 6pm" and keeps the conversation. It does not retry for minutes, which would also burn what is left of a per-minute budget. If the provider does not say when the quota resets, the message names the model and says so.
 - **The model stays blocked until the reset.** Requests to that model are answered locally without calling the provider. Other models, Claude included, are unaffected.
 - **The stopped session is recorded:** its id, the model, and what it was working on. When the quota is back, the next session start in that project says so and gives the command to continue: `claude --resume <id>`, then "continue". To keep working right away, pick another model with `/model` and say "continue".
-- **`/code-team:quota` lists them.** It shows each model that is out of quota with its reset time, and each stopped session with its resume command.
+- **`/code-team:quota` lists them.** It shows each model that is out of quota with its reset time, and each stopped session with its resume command. `quota clear` lifts every block and forgets the records, for when the provider is known to be fine again.
+- **Only the provider's own verdict counts.** A 429 whose reset is under a minute is throttling and is passed through for Claude Code to retry, and a local proxy refusing with "cooling down" is relayed as it is, never recorded as a quota.
 
 A short 429 that is ordinary throttling (a few seconds' wait and no quota wording) is passed through, and Claude Code retries it as usual.
 

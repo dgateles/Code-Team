@@ -36,6 +36,10 @@ test('quota rejections are told apart from ordinary throttling, with the reset w
 
   // A short, wordless 429 stays Claude Code's to retry.
   assert.equal(quota.classifyQuota({ status: 429, headers: { 'retry-after': '5' }, body: '{"error":{"message":"slow down"}}', now: NOW }), null);
+  // Google's per-minute limit also says RESOURCE_EXHAUSTED; a reset under a minute is throttling, not a quota.
+  assert.equal(quota.classifyQuota({ status: 429, body: '{"error":{"status":"RESOURCE_EXHAUSTED","details":[{"retryDelay":"30s"}],"message":"Quota exceeded for quota metric Requests per minute"}}', now: NOW }), null);
+  // CLIProxyAPI's scheduler refusing on its own cooldown state is relayed, never recorded as this model's quota.
+  assert.equal(quota.classifyQuota({ status: 429, headers: { 'retry-after': '172800' }, body: '{"error":{"message":"All credentials for model claude-opus-5-5 are cooling down via provider antigravity","reset_seconds":172800}}', now: NOW }), null);
   assert.equal(quota.classifyQuota({ status: 500, body: 'quota', now: NOW }), null);
 });
 
@@ -79,9 +83,13 @@ test('quota lists blocks and stopped sessions, and clear forgets the records', (
   assert.match(text, /task: "write tests"/);
   assert.match(text, /resume: claude --resume s-9, then say "continue"/);
   lines.length = 0;
+  quotaCommand(['clear', 'other-session'], context);
+  assert.match(lines[0], /^cleared 0 interrupted session records$/);
+  assert.equal(Object.keys(quota.readState(file).blocks).length, 1, 'a session clear leaves blocks alone');
+  lines.length = 0;
   quotaCommand(['clear'], context);
-  assert.match(lines[0], /cleared 1 interrupted session record/);
-  assert.equal(quota.readState(file).interruptions.length, 0);
+  assert.match(lines[0], /cleared 1 interrupted session record and lifted 1 quota block/);
+  assert.deepEqual(quota.readState(file), { blocks: {}, interruptions: [] });
 });
 
 test('the gateway answers a provider quota as a usage limit and stops calling the provider until the reset', async (t) => {
