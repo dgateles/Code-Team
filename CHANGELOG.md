@@ -4,6 +4,18 @@ Code Team is a fork of Model Gateway 0.55.3 by Eigenwise (MIT). For the history
 before the fork, see the upstream changelog:
 https://github.com/Eigenwise/eigenwise-toolshed/blob/main/plugins/model-gateway/CHANGELOG.md
 
+## 0.1.4
+
+### Fixed
+
+- Antigravity refused every subagent with "429 Resource has been exhausted"
+  while the quota was at 100%. Google's backend rejects system prompts that
+  carry a known third-party coding-agent fingerprint, and Claude Code's
+  subagents open with "built on Anthropic's Claude Agent SDK"
+  (router-for-me/CLIProxyAPI#7049). Antigravity-bound requests now get a
+  zero-width space inserted into those phrases in their system blocks, the way
+  CLIProxyAPI's `sensitive-words` option does; user content is untouched.
+
 ## 0.1.3
 
 ### Fixed

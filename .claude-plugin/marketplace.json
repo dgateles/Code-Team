@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Code Team: use Claude Code with Antigravity, GPT, Kimi, Grok and other models.",
-    "version": "0.1.3"
+    "version": "0.1.4"
   },
   "plugins": [
     {
       "name": "code-team",
       "source": "./",
       "description": "Use Claude Code with Antigravity, GPT, Kimi, Grok and other models.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Douglas Teles"
       },
